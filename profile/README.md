@@ -3,7 +3,7 @@ Welcome to the GitHub organization for building Red List of Ecosystems assessmen
 ## To create a new assessment report
 
 1. **Fork the template repository**
-    - Go to https://github.com/RLE-Assessment/TEMPLATE-rle-assessment
+    - In a new window, open https://github.com/RLE-Assessment/TEMPLATE-rle-assessment
     - Select **Use this template** > **Create a new repository**
         - Under **Include all branches** select **On**
         - Populate the **Repository name**. For example: "*ruritania-rle-assessment*"
