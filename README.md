@@ -1,0 +1,1 @@
+This repository is used to store organization-wide default files, templates, and configurations.
