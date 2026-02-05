@@ -1,4 +1,4 @@
-Welcome to the GitHub organization for building Red List of Ecosystems assessment reports.
+Welcome to the GitHub organization for building Red List of Ecosystems (RLE) assessment reports.
 
 ## How to create a new assessment report
 
