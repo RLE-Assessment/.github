@@ -3,8 +3,9 @@ Welcome to the GitHub organization for building Red List of Ecosystems (RLE) ass
 ## How to create a new assessment report
 
 Prerequisites
-- A [GitHub](https://github.com/) account
-- A [Google Cloud Project](https://console.cloud.google.com/) account and project
+- [ ] A [GitHub](https://github.com/) account
+- [ ] A [Google Cloud Project](https://console.cloud.google.com/) account
+- [ ] A GCP project, with the Google Earth Engine API enabled.
 
 Detailed Steps
 
