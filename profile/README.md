@@ -4,6 +4,7 @@ Welcome to the GitHub organization for building Red List of Ecosystems (RLE) ass
 
 Prerequisites
 - A [GitHub](https://github.com/) account
+- A [Google Cloud Project](https://console.cloud.google.com/) account and project
 
 Detailed Steps
 
