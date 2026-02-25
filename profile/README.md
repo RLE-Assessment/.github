@@ -51,10 +51,10 @@ To create a new project:
     TEST set:
     ```
     COUNTRY_NAME=Ruritania
-    GCP_PROJECT_ID=test-rle-project-2
-    GCP_PROJECT_NAME="TEST RLE PROJECT 2"
+    GCP_PROJECT_ID=test-rle-project-3
+    GCP_PROJECT_NAME="TEST RLE PROJECT 3"
     GH_OWNER=tylere
-    GH_REPO_NAME=TEST-RLE-FROM-TEMPLATE-2
+    GH_REPO_NAME=TEST-RLE-FROM-TEMPLATE-3
     ```
 
 ## Create the assessment's GitHub repository
