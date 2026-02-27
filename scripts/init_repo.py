@@ -232,6 +232,19 @@ def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True) -> None:
         )
 
 
+def _get_gh_username() -> str:
+    """Return the authenticated GitHub username."""
+    result = subprocess.run(
+        ["gh", "api", "user", "--jq", ".login"],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        console.print("[red]Could not determine GitHub username.[/red]")
+        raise typer.Exit(code=1)
+    return result.stdout.strip()
+
+
 # ---------------------------------------------------------------------------
 # Phase 1 – GitHub repository
 # ---------------------------------------------------------------------------
@@ -265,7 +278,7 @@ def setup_github(
                 "gh",
                 "repo",
                 "create",
-                gh_repo_name,
+                repo_full,
                 f"--template={TEMPLATE_REPO}",
                 f"--description=An IUCN Red List of Ecosystems assessment for {country_name}",
                 "--public",
@@ -678,10 +691,9 @@ def cmd_all(
         prompt="GCP project display name",
         help="Human-readable GCP project name.",
     ),
-    gh_owner: str = typer.Option(
-        ...,
-        prompt="GitHub owner",
-        help="GitHub user or organization that will own the repository.",
+    gh_owner: str | None = typer.Option(
+        None,
+        help="GitHub user or organization that will own the repository. Defaults to the authenticated user.",
     ),
     gh_repo_name: str = typer.Option(
         ...,
@@ -693,6 +705,8 @@ def cmd_all(
     """Run all initialization steps: GitHub repo, GCP project, and secrets."""
     global AUTO_CONFIRM
     AUTO_CONFIRM = yes
+    if gh_owner is None:
+        gh_owner = _get_gh_username()
     github_steps = 3
     gcp_steps = 8
     secret_steps = 2
@@ -765,10 +779,9 @@ def github(
         prompt="Country name",
         help="Name of the country for the assessment.",
     ),
-    gh_owner: str = typer.Option(
-        ...,
-        prompt="GitHub owner",
-        help="GitHub user or organization.",
+    gh_owner: str | None = typer.Option(
+        None,
+        help="GitHub user or organization. Defaults to the authenticated user.",
     ),
     gh_repo_name: str = typer.Option(
         ...,
@@ -781,6 +794,8 @@ def github(
     global AUTO_CONFIRM
     AUTO_CONFIRM = yes
     check_prerequisites(need_gh=True, need_gcloud=False)
+    if gh_owner is None:
+        gh_owner = _get_gh_username()
     setup_github(gh_owner, gh_repo_name, country_name)
 
 
@@ -796,10 +811,9 @@ def gcp(
         prompt="GCP project display name",
         help="Human-readable GCP project name.",
     ),
-    gh_owner: str = typer.Option(
-        ...,
-        prompt="GitHub owner",
-        help="GitHub user or organization.",
+    gh_owner: str | None = typer.Option(
+        None,
+        help="GitHub user or organization. Defaults to the authenticated user.",
     ),
     gh_repo_name: str = typer.Option(
         ...,
@@ -812,15 +826,16 @@ def gcp(
     global AUTO_CONFIRM
     AUTO_CONFIRM = yes
     check_prerequisites(need_gh=False, need_gcloud=True)
+    if gh_owner is None:
+        gh_owner = _get_gh_username()
     setup_gcp(gcp_project_id, gcp_project_name, gh_owner, gh_repo_name)
 
 
 @app.command()
 def secrets(
-    gh_owner: str = typer.Option(
-        ...,
-        prompt="GitHub owner",
-        help="GitHub user or organization.",
+    gh_owner: str | None = typer.Option(
+        None,
+        help="GitHub user or organization. Defaults to the authenticated user.",
     ),
     gh_repo_name: str = typer.Option(
         ...,
@@ -843,6 +858,8 @@ def secrets(
     global AUTO_CONFIRM
     AUTO_CONFIRM = yes
     check_prerequisites(need_gh=True, need_gcloud=False)
+    if gh_owner is None:
+        gh_owner = _get_gh_username()
     setup_secrets(gh_owner, gh_repo_name, gcp_project_id, project_number)
 
 

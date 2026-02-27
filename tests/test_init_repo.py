@@ -12,12 +12,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import init_repo
 from init_repo import (
+    _get_gh_username,
+    _setup_gcp_own,
     app,
     check_prerequisites,
     run_command,
     setup_github,
     setup_secrets,
-    _setup_gcp_own,
 )
 
 runner = CliRunner()
@@ -110,6 +111,21 @@ class TestCheckPrerequisites:
     def test_gcloud_not_authenticated(self, _mock_which, _mock_run):
         with pytest.raises(typer.Exit):
             check_prerequisites(need_gh=False, need_gcloud=True)
+
+
+# ---------------------------------------------------------------------------
+# _get_gh_username
+# ---------------------------------------------------------------------------
+
+class TestGetGhUsername:
+    @patch("init_repo.subprocess.run", return_value=_ok(stdout="tylere\n"))
+    def test_returns_username(self, _mock_run):
+        assert _get_gh_username() == "tylere"
+
+    @patch("init_repo.subprocess.run", return_value=_fail())
+    def test_exits_on_failure(self, _mock_run):
+        with pytest.raises(typer.Exit):
+            _get_gh_username()
 
 
 # ---------------------------------------------------------------------------
@@ -264,6 +280,7 @@ class TestSetupGithub:
         # view check + create + pages env + deployment branch = 4
         assert mock_run.call_count == 4
         create_call_args = mock_run.call_args_list[1][0][0]
+        assert "owner/repo" in create_call_args
         assert any("TEMPLATE-rle-assessment" in arg for arg in create_call_args)
 
     @patch("init_repo.subprocess.run", return_value=_ok())
