@@ -31,6 +31,7 @@ console = Console()
 
 SA_NAME = "github-actions"
 TEMPLATE_REPO = "RLE-Assessment/TEMPLATE-rle-assessment"
+AUTO_CONFIRM = False
 
 
 # ---------------------------------------------------------------------------
@@ -59,6 +60,11 @@ def _is_already_exists_error(stderr: str) -> bool:
     return "ALREADY_EXISTS" in stderr or "already exists" in stderr
 
 
+def _is_retryable_error(stderr: str) -> bool:
+    """Check if a gcloud error is likely caused by propagation delay."""
+    return "PERMISSION_DENIED" in stderr or "does not exist" in stderr
+
+
 def run_command(
     cmd: list[str],
     *,
@@ -69,6 +75,7 @@ def run_command(
     capture: bool = False,
     input_data: str | None = None,
     skip_if_exists: bool = False,
+    retries: int = 0,
 ) -> subprocess.CompletedProcess:
     """Run a shell command with Rich output describing what it does and why.
 
@@ -88,6 +95,10 @@ def run_command(
         Optional stdin data to pass to the process.
     skip_if_exists : bool
         If True, treat ALREADY_EXISTS errors as a skip instead of a failure.
+    retries : int
+        Number of times to retry on transient errors such as PERMISSION_DENIED
+        or "does not exist" (with a 30-second wait between attempts).  Useful
+        after IAM or resource changes that need time to propagate.
 
     Returns
     -------
@@ -97,25 +108,46 @@ def run_command(
     _describe(description)
     _show_command(cmd)
 
-    console.print("  [dim]Running...[/dim]")
-    result = subprocess.run(
-        cmd,
-        capture_output=capture or skip_if_exists,
-        text=True,
-        input=input_data,
-    )
+    if not AUTO_CONFIRM:
+        if not typer.confirm("  Run this command?", default=True):
+            console.print("  [dim]Skipped.[/dim]")
+            raise typer.Exit(code=0)
 
-    if result.returncode == 0:
-        console.print("  [green]Done[/green]")
-        if capture and result.stdout.strip():
-            console.print(f"  [dim]{result.stdout.strip()}[/dim]")
-    elif skip_if_exists and _is_already_exists_error(result.stderr or ""):
-        console.print("  [yellow]Already exists — skipping.[/yellow]")
-    else:
+    need_capture = capture or skip_if_exists or retries > 0
+    attempts = 1 + retries
+
+    for attempt in range(1, attempts + 1):
+        console.print("  [dim]Running...[/dim]")
+        result = subprocess.run(
+            cmd,
+            capture_output=need_capture,
+            text=True,
+            input=input_data,
+        )
+
+        if result.returncode == 0:
+            console.print("  [green]Done[/green]")
+            if capture and result.stdout.strip():
+                console.print(f"  [dim]{result.stdout.strip()}[/dim]")
+            return result
+
+        stderr = result.stderr or ""
+
+        if skip_if_exists and _is_already_exists_error(stderr):
+            console.print("  [yellow]Already exists — skipping.[/yellow]")
+            return result
+
+        if retries > 0 and _is_retryable_error(stderr) and attempt < attempts:
+            console.print(
+                f"  [yellow]Transient error — waiting 30 seconds for "
+                f"propagation (attempt {attempt}/{attempts})...[/yellow]"
+            )
+            time.sleep(30)
+            continue
+
         console.print("  [red]Failed[/red]")
-        stderr = result.stderr.strip() if result.stderr else ""
-        if stderr:
-            console.print(Panel(stderr, title="Error", border_style="red"))
+        if stderr.strip():
+            console.print(Panel(stderr.strip(), title="Error", border_style="red"))
         raise typer.Exit(code=1)
 
     return result
@@ -350,9 +382,6 @@ def _setup_gcp_own(
         ),
     )
 
-    console.print("  [dim]Waiting 30 seconds for IAM permissions to propagate...[/dim]")
-    time.sleep(30)
-
     apis = [
         ("earthengine.googleapis.com", "Earth Engine API — provides access to Google Earth Engine for geospatial analysis."),
         ("iamcredentials.googleapis.com", "IAM Service Account Credentials API — required for Workload Identity Federation authentication."),
@@ -367,6 +396,7 @@ def _setup_gcp_own(
             total=total,
             title=f"Enable API ({i + 1}/{len(apis)})",
             description=f"Enables {reason}",
+            retries=3,
         )
 
     run_command(
@@ -386,6 +416,7 @@ def _setup_gcp_own(
             "  as secrets."
         ),
         skip_if_exists=True,
+        retries=3,
     )
 
     run_command(
@@ -411,6 +442,7 @@ def _setup_gcp_own(
             "  static service account keys."
         ),
         skip_if_exists=True,
+        retries=3,
     )
 
     run_command(
@@ -446,6 +478,7 @@ def _setup_gcp_own(
             "  allowing it to read and write Earth Engine assets (images,\n"
             "  feature collections, etc.) within this project."
         ),
+        retries=3,
     )
 
     run_command(
@@ -463,6 +496,7 @@ def _setup_gcp_own(
             "  service account would not be able to make Earth Engine\n"
             "  API requests."
         ),
+        retries=3,
     )
 
     result = run_command(
@@ -618,8 +652,11 @@ def cmd_all(
         ..., prompt="GitHub repository name",
         help="Name for the new GitHub repository.",
     ),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
 ) -> None:
     """Run all initialization steps: GitHub repo, GCP project, and secrets."""
+    global AUTO_CONFIRM
+    AUTO_CONFIRM = yes
     github_steps = 3
     gcp_steps = 8
     secret_steps = 2
@@ -687,8 +724,11 @@ def github(
         ..., prompt="GitHub repository name",
         help="Name for the new GitHub repository.",
     ),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
 ) -> None:
     """Create the GitHub repository and configure Pages deployment."""
+    global AUTO_CONFIRM
+    AUTO_CONFIRM = yes
     check_prerequisites(need_gh=True, need_gcloud=False)
     setup_github(gh_owner, gh_repo_name, country_name)
 
@@ -711,8 +751,11 @@ def gcp(
         ..., prompt="GitHub repository name",
         help="Name of the GitHub repository.",
     ),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
 ) -> None:
     """Set up the GCP project and Workload Identity Federation."""
+    global AUTO_CONFIRM
+    AUTO_CONFIRM = yes
     check_prerequisites(need_gh=False, need_gcloud=True)
     setup_gcp(gcp_project_id, gcp_project_name, gh_owner, gh_repo_name)
 
@@ -735,8 +778,11 @@ def secrets(
         ..., prompt="GCP project number",
         help="Numeric GCP project number (from gcloud projects describe).",
     ),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
 ) -> None:
     """Set GitHub repository secrets for GCP authentication."""
+    global AUTO_CONFIRM
+    AUTO_CONFIRM = yes
     check_prerequisites(need_gh=True, need_gcloud=False)
     setup_secrets(gh_owner, gh_repo_name, gcp_project_id, project_number)
 

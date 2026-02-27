@@ -10,6 +10,7 @@ from typer.testing import CliRunner
 # Add scripts/ to path so we can import init_repo as a module
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+import init_repo
 from init_repo import (
     app,
     check_prerequisites,
@@ -20,6 +21,14 @@ from init_repo import (
 )
 
 runner = CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def auto_confirm():
+    """Skip confirmation prompts in all tests."""
+    init_repo.AUTO_CONFIRM = True
+    yield
+    init_repo.AUTO_CONFIRM = False
 
 
 # ---------------------------------------------------------------------------
@@ -180,6 +189,62 @@ class TestRunCommand:
                 title="Create", description="Creates a thing",
                 skip_if_exists=True,
             )
+
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_retry_on_permission_denied_succeeds(self, mock_run, _mock_sleep):
+        mock_run.side_effect = [_fail("PERMISSION_DENIED"), _ok()]
+        result = run_command(
+            ["gcloud", "do", "thing"],
+            step=1, total=1,
+            title="Retry", description="Retries on permission denied",
+            retries=2,
+        )
+        assert result.returncode == 0
+        assert mock_run.call_count == 2
+        _mock_sleep.assert_called_once_with(30)
+
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_retry_on_does_not_exist_succeeds(self, mock_run, _mock_sleep):
+        mock_run.side_effect = [
+            _fail("INVALID_ARGUMENT: Service account sa@proj.iam.gserviceaccount.com does not exist."),
+            _ok(),
+        ]
+        result = run_command(
+            ["gcloud", "do", "thing"],
+            step=1, total=1,
+            title="Retry", description="Retries on does not exist",
+            retries=2,
+        )
+        assert result.returncode == 0
+        assert mock_run.call_count == 2
+        _mock_sleep.assert_called_once_with(30)
+
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run", return_value=_fail("PERMISSION_DENIED"))
+    def test_retries_exhausted(self, _mock_run, _mock_sleep):
+        with pytest.raises(typer.Exit):
+            run_command(
+                ["gcloud", "do", "thing"],
+                step=1, total=1,
+                title="Retry", description="Exhausts retries",
+                retries=2,
+            )
+        assert _mock_run.call_count == 3
+        assert _mock_sleep.call_count == 2
+
+    @patch("init_repo.subprocess.run")
+    @patch("init_repo.typer.confirm", return_value=False)
+    def test_skip_on_declined_confirmation(self, _mock_confirm, mock_run):
+        init_repo.AUTO_CONFIRM = False
+        with pytest.raises(typer.Exit):
+            run_command(
+                ["echo", "hello"],
+                step=1, total=1,
+                title="Test", description="A test command",
+            )
+        mock_run.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
