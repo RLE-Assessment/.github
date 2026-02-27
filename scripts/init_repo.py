@@ -413,6 +413,14 @@ def _setup_gcp_own(
             console.print(
                 "\n  [red]Could not verify permissions on this project.[/red]\n"
             )
+            if perms.stderr and perms.stderr.strip():
+                console.print(
+                    Panel(
+                        perms.stderr.strip(),
+                        title="Error",
+                        border_style="red",
+                    )
+                )
             raise typer.Exit(code=1)
 
         granted = json.loads(perms.stdout).get("permissions", [])
