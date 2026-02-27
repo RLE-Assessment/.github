@@ -25,7 +25,6 @@ import typer
 from rich.console import Console
 from rich.panel import Panel
 from rich.rule import Rule
-from rich.syntax import Syntax
 
 console = Console()
 
@@ -53,8 +52,7 @@ def _describe(text: str) -> None:
 def _show_command(cmd: list[str]) -> None:
     """Display the command that is about to run."""
     cmd_str = " ".join(cmd)
-    syntax = Syntax(cmd_str, "bash", theme="ansi_dark", word_wrap=True)
-    console.print(Panel(syntax, border_style="dim", padding=(0, 1)))
+    console.print(Panel(cmd_str, style="reverse", border_style="dim", padding=(0, 1)))
 
 
 def _is_already_exists_error(stderr: str) -> bool:
