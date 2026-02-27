@@ -38,6 +38,7 @@ AUTO_CONFIRM = False
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _step_header(step: int, total: int, title: str) -> None:
     """Print a Rich rule with the step counter."""
     console.print()
@@ -157,6 +158,7 @@ def run_command(
 # Prerequisites
 # ---------------------------------------------------------------------------
 
+
 def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True) -> None:
     """Verify that required CLIs are installed and authenticated.
 
@@ -165,56 +167,75 @@ def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True) -> None:
     """
     if need_gh:
         if shutil.which("gh") is None:
-            console.print(Panel(
-                "[bold red]GitHub CLI (gh) is not installed.[/bold red]\n\n"
-                "Install it from: https://cli.github.com\n"
-                "Then run: [bold]gh auth login[/bold]",
-                title="Missing prerequisite",
-            ))
+            console.print(
+                Panel(
+                    "[bold red]GitHub CLI (gh) is not installed.[/bold red]\n\n"
+                    "Install it from: https://cli.github.com\n"
+                    "Then run: [bold]gh auth login[/bold]",
+                    title="Missing prerequisite",
+                )
+            )
             raise typer.Exit(code=1)
 
         result = subprocess.run(
             ["gh", "auth", "status"],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
         if result.returncode != 0:
-            console.print(Panel(
-                "[bold red]Not authenticated to GitHub.[/bold red]\n\n"
-                "Run the following command and follow the prompts:\n"
-                "  [bold]gh auth login[/bold]",
-                title="Authentication required",
-            ))
+            console.print(
+                Panel(
+                    "[bold red]Not authenticated to GitHub.[/bold red]\n\n"
+                    "Run the following command and follow the prompts:\n"
+                    "  [bold]gh auth login[/bold]",
+                    title="Authentication required",
+                )
+            )
             raise typer.Exit(code=1)
         console.print("  [green]GitHub CLI authenticated[/green]")
 
     if need_gcloud:
         if shutil.which("gcloud") is None:
-            console.print(Panel(
-                "[bold red]Google Cloud CLI (gcloud) is not installed.[/bold red]\n\n"
-                "Install it from: https://cloud.google.com/sdk/docs/install\n"
-                "Then run: [bold]gcloud auth login[/bold]",
-                title="Missing prerequisite",
-            ))
+            console.print(
+                Panel(
+                    "[bold red]Google Cloud CLI (gcloud) is not installed.[/bold red]\n\n"
+                    "Install it from: https://cloud.google.com/sdk/docs/install\n"
+                    "Then run: [bold]gcloud auth login[/bold]",
+                    title="Missing prerequisite",
+                )
+            )
             raise typer.Exit(code=1)
 
         result = subprocess.run(
-            ["gcloud", "auth", "list", "--filter=status:ACTIVE", "--format=value(account)"],
-            capture_output=True, text=True,
+            [
+                "gcloud",
+                "auth",
+                "list",
+                "--filter=status:ACTIVE",
+                "--format=value(account)",
+            ],
+            capture_output=True,
+            text=True,
         )
         if result.returncode != 0 or not result.stdout.strip():
-            console.print(Panel(
-                "[bold red]Not authenticated to Google Cloud.[/bold red]\n\n"
-                "Run the following command and follow the prompts:\n"
-                "  [bold]gcloud auth login[/bold]",
-                title="Authentication required",
-            ))
+            console.print(
+                Panel(
+                    "[bold red]Not authenticated to Google Cloud.[/bold red]\n\n"
+                    "Run the following command and follow the prompts:\n"
+                    "  [bold]gcloud auth login[/bold]",
+                    title="Authentication required",
+                )
+            )
             raise typer.Exit(code=1)
-        console.print(f"  [green]Google Cloud CLI authenticated as {result.stdout.strip()}[/green]")
+        console.print(
+            f"  [green]Google Cloud CLI authenticated as {result.stdout.strip()}[/green]"
+        )
 
 
 # ---------------------------------------------------------------------------
 # Phase 1 – GitHub repository
 # ---------------------------------------------------------------------------
+
 
 def setup_github(
     gh_owner: str,
@@ -230,15 +251,21 @@ def setup_github(
     # Check if repository already exists
     check = subprocess.run(
         ["gh", "repo", "view", repo_full, "--json", "name"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if check.returncode == 0:
         _step_header(step_offset + 1, total, "Create GitHub Repository")
-        console.print(f"\n  [yellow]Repository {repo_full} already exists — skipping creation.[/yellow]\n")
+        console.print(
+            f"\n  [yellow]Repository {repo_full} already exists — skipping creation.[/yellow]\n"
+        )
     else:
         run_command(
             [
-                "gh", "repo", "create", gh_repo_name,
+                "gh",
+                "repo",
+                "create",
+                gh_repo_name,
                 f"--template={TEMPLATE_REPO}",
                 f"--description=An IUCN Red List of Ecosystems assessment for {country_name}",
                 "--public",
@@ -252,30 +279,39 @@ def setup_github(
 
     run_command(
         [
-            "gh", "api",
+            "gh",
+            "api",
             f"repos/{gh_owner}/{gh_repo_name}/environments/github-pages",
-            "-X", "PUT",
-            "--input", "-",
+            "-X",
+            "PUT",
+            "--input",
+            "-",
         ],
         step=step_offset + 2,
         total=total,
         title="Create GitHub Pages Environment",
         description="configures the repository's 'github-pages' deployment environment with a custom branch policy. This allows GitHub Actions to deploy rendered content from specific branches (like main) to GitHub Pages, rather than only from protected branches.",
-        input_data=json.dumps({
-            "deployment_branch_policy": {
-                "protected_branches": False,
-                "custom_branch_policies": True,
+        input_data=json.dumps(
+            {
+                "deployment_branch_policy": {
+                    "protected_branches": False,
+                    "custom_branch_policies": True,
+                }
             }
-        }),
+        ),
     )
 
     run_command(
         [
-            "gh", "api",
+            "gh",
+            "api",
             f"repos/{gh_owner}/{gh_repo_name}/environments/github-pages/deployment-branch-policies",
-            "-X", "POST",
-            "-f", "name=main",
-            "-f", "type=branch",
+            "-X",
+            "POST",
+            "-f",
+            "name=main",
+            "-f",
+            "type=branch",
         ],
         step=step_offset + 3,
         total=total,
@@ -291,6 +327,7 @@ def setup_github(
 # Phase 2 – GCP project
 # ---------------------------------------------------------------------------
 
+
 def _setup_gcp_own(
     gcp_project_id: str,
     gcp_project_name: str,
@@ -304,29 +341,38 @@ def _setup_gcp_own(
     Returns the GCP project number (needed for secrets).
     """
 
-    console.print(Panel(
-        "[dim]Google Cloud may prompt you to reauthenticate for privileged\n"
-        "operations like creating projects. This is a normal security\n"
-        "measure — enter your password if prompted.[/dim]",
-        title="Note",
-        border_style="dim",
-    ))
+    console.print(
+        Panel(
+            "[dim]Google Cloud may prompt you to reauthenticate for privileged\n"
+            "operations like creating projects. This is a normal security\n"
+            "measure — enter your password if prompted.[/dim]",
+            title="Note",
+            border_style="dim",
+        )
+    )
 
     check = subprocess.run(
         ["gcloud", "projects", "describe", gcp_project_id, "--format=value(projectId)"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     if check.returncode == 0 and check.stdout.strip() == gcp_project_id:
         _step_header(step_offset + 1, total, "Create GCP Project")
-        console.print(f"\n  [yellow]Project {gcp_project_id} already exists — skipping creation.[/yellow]\n")
+        console.print(
+            f"\n  [yellow]Project {gcp_project_id} already exists — skipping creation.[/yellow]\n"
+        )
         subprocess.run(
             ["gcloud", "config", "set", "project", gcp_project_id],
-            capture_output=True, text=True,
+            capture_output=True,
+            text=True,
         )
     else:
         run_command(
             [
-                "gcloud", "projects", "create", gcp_project_id,
+                "gcloud",
+                "projects",
+                "create",
+                gcp_project_id,
                 f"--name={gcp_project_name}",
                 "--set-as-default",
             ],
@@ -339,13 +385,17 @@ def _setup_gcp_own(
     # Get the current authenticated account for the Owner binding
     acct_result = subprocess.run(
         ["gcloud", "auth", "list", "--filter=status:ACTIVE", "--format=value(account)"],
-        capture_output=True, text=True,
+        capture_output=True,
+        text=True,
     )
     active_account = acct_result.stdout.strip()
 
     run_command(
         [
-            "gcloud", "projects", "add-iam-policy-binding", gcp_project_id,
+            "gcloud",
+            "projects",
+            "add-iam-policy-binding",
+            gcp_project_id,
             f"--member=user:{active_account}",
             "--role=roles/owner",
         ],
@@ -356,10 +406,22 @@ def _setup_gcp_own(
     )
 
     apis = [
-        ("earthengine.googleapis.com", "Earth Engine API — provides access to Google Earth Engine for geospatial analysis."),
-        ("iamcredentials.googleapis.com", "IAM Service Account Credentials API — required for Workload Identity Federation authentication."),
-        ("sts.googleapis.com", "Security Token Service API — exchanges GitHub's OIDC token for a GCP federated token."),
-        ("cloudresourcemanager.googleapis.com", "Cloud Resource Manager API — allows gcloud commands to query project metadata."),
+        (
+            "earthengine.googleapis.com",
+            "Earth Engine API — provides access to Google Earth Engine for geospatial analysis.",
+        ),
+        (
+            "iamcredentials.googleapis.com",
+            "IAM Service Account Credentials API — required for Workload Identity Federation authentication.",
+        ),
+        (
+            "sts.googleapis.com",
+            "Security Token Service API — exchanges GitHub's OIDC token for a GCP federated token.",
+        ),
+        (
+            "cloudresourcemanager.googleapis.com",
+            "Cloud Resource Manager API — allows gcloud commands to query project metadata.",
+        ),
     ]
 
     for i, (api, reason) in enumerate(apis):
@@ -374,7 +436,11 @@ def _setup_gcp_own(
 
     run_command(
         [
-            "gcloud", "iam", "workload-identity-pools", "create", "github-pool",
+            "gcloud",
+            "iam",
+            "workload-identity-pools",
+            "create",
+            "github-pool",
             f"--project={gcp_project_id}",
             "--location=global",
             "--display-name=GitHub Actions Pool",
@@ -389,7 +455,11 @@ def _setup_gcp_own(
 
     run_command(
         [
-            "gcloud", "iam", "workload-identity-pools", "providers", "create-oidc",
+            "gcloud",
+            "iam",
+            "workload-identity-pools",
+            "providers",
+            "create-oidc",
             "github-provider",
             f"--project={gcp_project_id}",
             "--location=global",
@@ -409,7 +479,11 @@ def _setup_gcp_own(
 
     run_command(
         [
-            "gcloud", "iam", "service-accounts", "create", SA_NAME,
+            "gcloud",
+            "iam",
+            "service-accounts",
+            "create",
+            SA_NAME,
             f"--project={gcp_project_id}",
             "--display-name=GitHub Actions",
         ],
@@ -424,7 +498,10 @@ def _setup_gcp_own(
 
     run_command(
         [
-            "gcloud", "projects", "add-iam-policy-binding", gcp_project_id,
+            "gcloud",
+            "projects",
+            "add-iam-policy-binding",
+            gcp_project_id,
             f"--member=serviceAccount:{sa_email}",
             "--role=roles/earthengine.writer",
         ],
@@ -437,7 +514,10 @@ def _setup_gcp_own(
 
     run_command(
         [
-            "gcloud", "projects", "add-iam-policy-binding", gcp_project_id,
+            "gcloud",
+            "projects",
+            "add-iam-policy-binding",
+            gcp_project_id,
             f"--member=serviceAccount:{sa_email}",
             "--role=roles/serviceusage.serviceUsageConsumer",
         ],
@@ -450,7 +530,10 @@ def _setup_gcp_own(
 
     result = run_command(
         [
-            "gcloud", "projects", "describe", gcp_project_id,
+            "gcloud",
+            "projects",
+            "describe",
+            gcp_project_id,
             "--format=value(projectNumber)",
         ],
         step=step_offset + 8,
@@ -470,7 +553,10 @@ def _setup_gcp_own(
 
     run_command(
         [
-            "gcloud", "iam", "service-accounts", "add-iam-policy-binding",
+            "gcloud",
+            "iam",
+            "service-accounts",
+            "add-iam-policy-binding",
             sa_email,
             f"--project={gcp_project_id}",
             "--role=roles/iam.workloadIdentityUser",
@@ -497,15 +583,19 @@ def setup_gcp(
 
     final_total = total if total is not None else 8
     return _setup_gcp_own(
-        gcp_project_id, gcp_project_name,
-        gh_owner, gh_repo_name,
-        step_offset=step_offset, total=final_total,
+        gcp_project_id,
+        gcp_project_name,
+        gh_owner,
+        gh_repo_name,
+        step_offset=step_offset,
+        total=final_total,
     )
 
 
 # ---------------------------------------------------------------------------
 # Phase 3 – GitHub secrets
 # ---------------------------------------------------------------------------
+
 
 def setup_secrets(
     gh_owner: str,
@@ -527,9 +617,14 @@ def setup_secrets(
 
     run_command(
         [
-            "gh", "secret", "set", "GCP_WORKLOAD_IDENTITY_PROVIDER",
-            "--repo", repo,
-            "--body", wif_provider,
+            "gh",
+            "secret",
+            "set",
+            "GCP_WORKLOAD_IDENTITY_PROVIDER",
+            "--repo",
+            repo,
+            "--body",
+            wif_provider,
         ],
         step=step_offset + 1,
         total=total,
@@ -539,9 +634,14 @@ def setup_secrets(
 
     run_command(
         [
-            "gh", "secret", "set", "GCP_SERVICE_ACCOUNT",
-            "--repo", repo,
-            "--body", sa_email,
+            "gh",
+            "secret",
+            "set",
+            "GCP_SERVICE_ACCOUNT",
+            "--repo",
+            repo,
+            "--body",
+            sa_email,
         ],
         step=step_offset + 2,
         total=total,
@@ -564,23 +664,28 @@ app = typer.Typer(
 @app.command(name="all")
 def cmd_all(
     country_name: str = typer.Option(
-        ..., prompt="Country name",
+        ...,
+        prompt="Country name",
         help="Name of the country for the assessment (e.g. Ruritania).",
     ),
     gcp_project_id: str = typer.Option(
-        ..., prompt="GCP project ID",
+        ...,
+        prompt="GCP project ID",
         help="Google Cloud project ID (e.g. my-rle-project).",
     ),
     gcp_project_name: str = typer.Option(
-        ..., prompt="GCP project display name",
+        ...,
+        prompt="GCP project display name",
         help="Human-readable GCP project name.",
     ),
     gh_owner: str = typer.Option(
-        ..., prompt="GitHub owner",
+        ...,
+        prompt="GitHub owner",
         help="GitHub user or organization that will own the repository.",
     ),
     gh_repo_name: str = typer.Option(
-        ..., prompt="GitHub repository name",
+        ...,
+        prompt="GitHub repository name",
         help="Name for the new GitHub repository.",
     ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
@@ -593,66 +698,81 @@ def cmd_all(
     secret_steps = 2
     total = github_steps + gcp_steps + secret_steps
 
-    console.print(Panel(
-        f"[bold]Initializing RLE assessment repository[/bold]\n\n"
-        f"  Country:     {country_name}\n"
-        f"  Repository:  {gh_owner}/{gh_repo_name}\n"
-        f"  GCP project: {gcp_project_id}\n"
-        f"  Total steps: {total}",
-        title="RLE Assessment Init",
-        border_style="blue",
-    ))
+    console.print(
+        Panel(
+            f"[bold]Initializing RLE assessment repository[/bold]\n\n"
+            f"  Country:     {country_name}\n"
+            f"  Repository:  {gh_owner}/{gh_repo_name}\n"
+            f"  GCP project: {gcp_project_id}\n"
+            f"  Total steps: {total}",
+            title="RLE Assessment Init",
+            border_style="blue",
+        )
+    )
 
     check_prerequisites(need_gh=True, need_gcloud=True)
 
     console.print(Rule("[bold blue]Phase 1: GitHub Repository Setup"))
     setup_github(
-        gh_owner, gh_repo_name, country_name,
-        step_offset=0, total=total,
+        gh_owner,
+        gh_repo_name,
+        country_name,
+        step_offset=0,
+        total=total,
     )
 
     console.print(Rule("[bold blue]Phase 2: GCP Project Setup"))
     project_number = setup_gcp(
-        gcp_project_id, gcp_project_name,
-        gh_owner, gh_repo_name,
-        step_offset=github_steps, total=total,
+        gcp_project_id,
+        gcp_project_name,
+        gh_owner,
+        gh_repo_name,
+        step_offset=github_steps,
+        total=total,
     )
 
     console.print(Rule("[bold blue]Phase 3: GitHub Secrets"))
     setup_secrets(
-        gh_owner, gh_repo_name,
+        gh_owner,
+        gh_repo_name,
         gcp_project_id,
         project_number,
-        step_offset=github_steps + gcp_steps, total=total,
+        step_offset=github_steps + gcp_steps,
+        total=total,
     )
 
     console.print()
-    console.print(Panel(
-        f"[bold green]All done![/bold green]\n\n"
-        f"  Repository: https://github.com/{gh_owner}/{gh_repo_name}\n"
-        f"  Next steps:\n"
-        f"    1. cd to your projects directory\n"
-        f"    2. Clone the repository:  gh repo clone {gh_owner}/{gh_repo_name}\n"
-        f"    3. cd {gh_repo_name}\n"
-        f"    4. Install packages:      pixi shell\n"
-        f"    5. Preview the site:      quarto preview",
-        title="Setup Complete",
-        border_style="green",
-    ))
+    console.print(
+        Panel(
+            f"[bold green]All done![/bold green]\n\n"
+            f"  Repository: https://github.com/{gh_owner}/{gh_repo_name}\n"
+            f"  Next steps:\n"
+            f"    1. cd to your projects directory\n"
+            f"    2. Clone the repository:  gh repo clone {gh_owner}/{gh_repo_name}\n"
+            f"    3. cd {gh_repo_name}\n"
+            f"    4. Install packages:      pixi shell\n"
+            f"    5. Preview the site:      quarto preview",
+            title="Setup Complete",
+            border_style="green",
+        )
+    )
 
 
 @app.command()
 def github(
     country_name: str = typer.Option(
-        ..., prompt="Country name",
+        ...,
+        prompt="Country name",
         help="Name of the country for the assessment.",
     ),
     gh_owner: str = typer.Option(
-        ..., prompt="GitHub owner",
+        ...,
+        prompt="GitHub owner",
         help="GitHub user or organization.",
     ),
     gh_repo_name: str = typer.Option(
-        ..., prompt="GitHub repository name",
+        ...,
+        prompt="GitHub repository name",
         help="Name for the new GitHub repository.",
     ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
@@ -667,19 +787,23 @@ def github(
 @app.command()
 def gcp(
     gcp_project_id: str = typer.Option(
-        ..., prompt="GCP project ID",
+        ...,
+        prompt="GCP project ID",
         help="Google Cloud project ID.",
     ),
     gcp_project_name: str = typer.Option(
-        ..., prompt="GCP project display name",
+        ...,
+        prompt="GCP project display name",
         help="Human-readable GCP project name.",
     ),
     gh_owner: str = typer.Option(
-        ..., prompt="GitHub owner",
+        ...,
+        prompt="GitHub owner",
         help="GitHub user or organization.",
     ),
     gh_repo_name: str = typer.Option(
-        ..., prompt="GitHub repository name",
+        ...,
+        prompt="GitHub repository name",
         help="Name of the GitHub repository.",
     ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
@@ -694,19 +818,23 @@ def gcp(
 @app.command()
 def secrets(
     gh_owner: str = typer.Option(
-        ..., prompt="GitHub owner",
+        ...,
+        prompt="GitHub owner",
         help="GitHub user or organization.",
     ),
     gh_repo_name: str = typer.Option(
-        ..., prompt="GitHub repository name",
+        ...,
+        prompt="GitHub repository name",
         help="Name of the GitHub repository.",
     ),
     gcp_project_id: str = typer.Option(
-        ..., prompt="GCP project ID",
+        ...,
+        prompt="GCP project ID",
         help="Google Cloud project ID.",
     ),
     project_number: str = typer.Option(
-        ..., prompt="GCP project number",
+        ...,
+        prompt="GCP project number",
         help="Numeric GCP project number (from gcloud projects describe).",
     ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
