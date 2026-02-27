@@ -329,6 +329,7 @@ def setup_github(
         total=total,
         title="Add 'main' as Deployment Branch",
         description="adds the 'main' branch to the list of branches allowed to deploy to the github-pages environment. Without this, the GitHub Actions deploy workflow would be blocked from publishing the rendered Quarto site.",
+        skip_if_exists=True,
     )
 
     repo_url = f"https://github.com/{gh_owner}/{gh_repo_name}"
@@ -836,6 +837,27 @@ def cmd_all(
         step_offset=github_steps + gcp_steps,
         total=total,
     )
+
+    # Re-trigger the deploy workflow now that the environment and secrets
+    # are fully configured.  The initial run (triggered by repo creation)
+    # likely failed because neither was in place yet.
+    console.print(Rule("[bold blue]Trigger Deploy Workflow"))
+    trigger_cmd = [
+        "gh",
+        "workflow",
+        "run",
+        "deploy.yml",
+        f"--repo={gh_owner}/{gh_repo_name}",
+    ]
+    _show_command(trigger_cmd)
+    trigger = subprocess.run(trigger_cmd, capture_output=True, text=True)
+    if trigger.returncode == 0:
+        console.print("  [green]Deploy workflow triggered.[/green]")
+    else:
+        console.print("  [yellow]Could not trigger workflow automatically.[/yellow]")
+        console.print(
+            "  [dim]Re-run the deploy workflow manually from the Actions tab.[/dim]"
+        )
 
     console.print()
     console.print(
