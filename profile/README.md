@@ -39,7 +39,7 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
 |---|---|
 | `--country-name` | Name of the country for the assessment |
 | `--gcp-project-id` | A globally unique GCP project identifier (lowercase letters, digits, and hyphens) |
-| `--gcp-project-name` | *(Optional)* A human-readable display name for the GCP project. Only required when creating a new project. |
+| `--gcp-project-name` | A human-readable display name for the GCP project |
 | `--gh-repo-name` | Name for the new GitHub repository |
 | `--gh-owner` | *(Optional)* GitHub username or organization. Defaults to the authenticated user. |
 | `--yes` / `-y` | *(Optional)* Skip confirmation prompts (useful for non-interactive use) |
