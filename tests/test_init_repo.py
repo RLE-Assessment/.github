@@ -435,6 +435,6 @@ class TestSetupGcpOwn:
 
 class TestSetupSecrets:
     @patch("init_repo.subprocess.run", return_value=_ok())
-    def test_sets_two_secrets(self, mock_run):
+    def test_sets_three_secrets(self, mock_run):
         setup_secrets("owner", "repo", "proj-id", "123")
-        assert mock_run.call_count == 2
+        assert mock_run.call_count == 3

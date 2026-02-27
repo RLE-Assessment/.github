@@ -701,7 +701,7 @@ def setup_secrets(
     gcp_project_id: str,
     project_number: str,
     step_offset: int = 0,
-    total: int = 2,
+    total: int = 3,
 ) -> None:
     """Set GitHub repository secrets for Workload Identity Federation."""
 
@@ -745,6 +745,23 @@ def setup_secrets(
         total=total,
         title="Set GCP_SERVICE_ACCOUNT Secret",
         description="stores the service account email as a GitHub repository secret. The deploy workflow uses this to specify which service account to impersonate when authenticating to Earth Engine.",
+    )
+
+    run_command(
+        [
+            "gh",
+            "secret",
+            "set",
+            "GCP_PROJECT_ID",
+            "--repo",
+            repo,
+            "--body",
+            gcp_project_id,
+        ],
+        step=step_offset + 3,
+        total=total,
+        title="Set GCP_PROJECT_ID Secret",
+        description="stores the GCP project ID as a GitHub repository secret. The deploy workflow uses this as the GOOGLE_CLOUD_PROJECT for Earth Engine API calls, ensuring the service account's permissions and billing are applied correctly.",
     )
 
 
@@ -793,7 +810,7 @@ def cmd_all(
         gh_owner = _get_gh_username()
     github_steps = 3
     gcp_steps = 8
-    secret_steps = 2
+    secret_steps = 3
     total = github_steps + gcp_steps + secret_steps
 
     summary = (
