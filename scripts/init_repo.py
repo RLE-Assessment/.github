@@ -247,12 +247,7 @@ def setup_github(
             step=step_offset + 1,
             total=total,
             title="Create GitHub Repository",
-            description=(
-                "creates a new public GitHub repository from the RLE assessment\n"
-                "  template. The template includes the Quarto project structure,\n"
-                "  GitHub Actions deploy workflow, country configuration files,\n"
-                "  and all report chapter scaffolding."
-            ),
+            description="creates a new public GitHub repository from the RLE assessment template. The template includes the Quarto project structure, GitHub Actions deploy workflow, country configuration files, and all report chapter scaffolding.",
         )
 
     run_command(
@@ -265,13 +260,7 @@ def setup_github(
         step=step_offset + 2,
         total=total,
         title="Create GitHub Pages Environment",
-        description=(
-            "configures the repository's 'github-pages' deployment\n"
-            "  environment with a custom branch policy. This allows GitHub\n"
-            "  Actions to deploy rendered content from specific branches\n"
-            "  (like main) to GitHub Pages, rather than only from protected\n"
-            "  branches."
-        ),
+        description="configures the repository's 'github-pages' deployment environment with a custom branch policy. This allows GitHub Actions to deploy rendered content from specific branches (like main) to GitHub Pages, rather than only from protected branches.",
         input_data=json.dumps({
             "deployment_branch_policy": {
                 "protected_branches": False,
@@ -291,12 +280,7 @@ def setup_github(
         step=step_offset + 3,
         total=total,
         title="Add 'main' as Deployment Branch",
-        description=(
-            "adds the 'main' branch to the list of branches allowed to\n"
-            "  deploy to the github-pages environment. Without this, the\n"
-            "  GitHub Actions deploy workflow would be blocked from\n"
-            "  publishing the rendered Quarto site."
-        ),
+        description="adds the 'main' branch to the list of branches allowed to deploy to the github-pages environment. Without this, the GitHub Actions deploy workflow would be blocked from publishing the rendered Quarto site.",
     )
 
     repo_url = f"https://github.com/{gh_owner}/{gh_repo_name}"
@@ -349,12 +333,7 @@ def _setup_gcp_own(
             step=step_offset + 1,
             total=total,
             title="Create GCP Project",
-            description=(
-                "creates a new Google Cloud Platform project that will host\n"
-                "  the Earth Engine resources and service accounts for this\n"
-                "  assessment. The project is set as the default for subsequent\n"
-                "  gcloud commands."
-            ),
+            description="creates a new Google Cloud Platform project that will host the Earth Engine resources and service accounts for this assessment. The project is set as the default for subsequent gcloud commands.",
         )
 
     # Get the current authenticated account for the Owner binding
@@ -373,13 +352,7 @@ def _setup_gcp_own(
         step=step_offset + 2,
         total=total,
         title="Ensure Owner Permissions",
-        description=(
-            f"grants the Owner role on the project to {active_account}.\n"
-            "  This ensures the current user has all permissions needed for\n"
-            "  subsequent steps (enabling APIs, creating workload identity\n"
-            "  pools, service accounts, and IAM bindings). The command is\n"
-            "  idempotent — if the role is already granted, this is a no-op."
-        ),
+        description=f"grants the Owner role on the project to {active_account}. This ensures the current user has all permissions needed for subsequent steps (enabling APIs, creating workload identity pools, service accounts, and IAM bindings). The command is idempotent — if the role is already granted, this is a no-op.",
     )
 
     apis = [
@@ -409,12 +382,7 @@ def _setup_gcp_own(
         step=step_offset + 4,
         total=total,
         title="Create Workload Identity Pool",
-        description=(
-            "creates a workload identity pool, which is a container for\n"
-            "  external identity providers. This pool allows GitHub Actions\n"
-            "  to authenticate to GCP without storing long-lived credentials\n"
-            "  as secrets."
-        ),
+        description="creates a workload identity pool, which is a container for external identity providers. This pool allows GitHub Actions to authenticate to GCP without storing long-lived credentials as secrets.",
         skip_if_exists=True,
         retries=3,
     )
@@ -434,13 +402,7 @@ def _setup_gcp_own(
         step=step_offset + 5,
         total=total,
         title="Create OIDC Provider",
-        description=(
-            "creates an OpenID Connect (OIDC) identity provider within the\n"
-            "  pool. This configures how GitHub Actions OIDC tokens are\n"
-            "  validated and mapped to GCP identities — the key piece of\n"
-            "  Workload Identity Federation that eliminates the need for\n"
-            "  static service account keys."
-        ),
+        description="creates an OpenID Connect (OIDC) identity provider within the pool. This configures how GitHub Actions OIDC tokens are validated and mapped to GCP identities — the key piece of Workload Identity Federation that eliminates the need for static service account keys.",
         skip_if_exists=True,
         retries=3,
     )
@@ -454,11 +416,7 @@ def _setup_gcp_own(
         step=step_offset + 6,
         total=total,
         title="Create Service Account",
-        description=(
-            "creates a dedicated service account that GitHub Actions will\n"
-            "  impersonate. This account will be granted only the minimum\n"
-            "  permissions needed: Earth Engine access and API usage."
-        ),
+        description="creates a dedicated service account that GitHub Actions will impersonate. This account will be granted only the minimum permissions needed: Earth Engine access and API usage.",
         skip_if_exists=True,
     )
 
@@ -473,11 +431,7 @@ def _setup_gcp_own(
         step=step_offset + 7,
         total=total,
         title="Grant IAM Roles (1/2)",
-        description=(
-            "grants the Earth Engine Writer role to the service account,\n"
-            "  allowing it to read and write Earth Engine assets (images,\n"
-            "  feature collections, etc.) within this project."
-        ),
+        description="grants the Earth Engine Writer role to the service account, allowing it to read and write Earth Engine assets (images, feature collections, etc.) within this project.",
         retries=3,
     )
 
@@ -490,12 +444,7 @@ def _setup_gcp_own(
         step=step_offset + 7,
         total=total,
         title="Grant IAM Roles (2/2)",
-        description=(
-            "grants the Service Usage Consumer role, which allows API\n"
-            "  calls to be billed to this project. Without this, the\n"
-            "  service account would not be able to make Earth Engine\n"
-            "  API requests."
-        ),
+        description="grants the Service Usage Consumer role, which allows API calls to be billed to this project. Without this, the service account would not be able to make Earth Engine API requests.",
         retries=3,
     )
 
@@ -507,11 +456,7 @@ def _setup_gcp_own(
         step=step_offset + 8,
         total=total,
         title="Get GCP Project Number",
-        description=(
-            "retrieves the GCP project number (a numeric identifier)\n"
-            "  needed to construct the Workload Identity Federation\n"
-            "  principal for the IAM binding."
-        ),
+        description="retrieves the GCP project number (a numeric identifier) needed to construct the Workload Identity Federation principal for the IAM binding.",
         capture=True,
     )
     project_number = result.stdout.strip()
@@ -534,12 +479,7 @@ def _setup_gcp_own(
         step=step_offset + 8,
         total=total,
         title="Bind Repository to Service Account",
-        description=(
-            "creates an IAM binding that allows only this specific GitHub\n"
-            "  repository to impersonate the service account via Workload\n"
-            "  Identity Federation. This is the final link connecting\n"
-            "  GitHub Actions to GCP."
-        ),
+        description="creates an IAM binding that allows only this specific GitHub repository to impersonate the service account via Workload Identity Federation. This is the final link connecting GitHub Actions to GCP.",
     )
 
     return project_number
@@ -594,12 +534,7 @@ def setup_secrets(
         step=step_offset + 1,
         total=total,
         title="Set GCP_WORKLOAD_IDENTITY_PROVIDER Secret",
-        description=(
-            "stores the full Workload Identity Provider resource path as a\n"
-            "  GitHub repository secret. The GitHub Actions deploy workflow\n"
-            "  uses this value to request a federated token from GCP,\n"
-            "  enabling keyless authentication."
-        ),
+        description="stores the full Workload Identity Provider resource path as a GitHub repository secret. The GitHub Actions deploy workflow uses this value to request a federated token from GCP, enabling keyless authentication.",
     )
 
     run_command(
@@ -611,11 +546,7 @@ def setup_secrets(
         step=step_offset + 2,
         total=total,
         title="Set GCP_SERVICE_ACCOUNT Secret",
-        description=(
-            "stores the service account email as a GitHub repository secret.\n"
-            "  The deploy workflow uses this to specify which service account\n"
-            "  to impersonate when authenticating to Earth Engine."
-        ),
+        description="stores the service account email as a GitHub repository secret. The deploy workflow uses this to specify which service account to impersonate when authenticating to Earth Engine.",
     )
 
 
