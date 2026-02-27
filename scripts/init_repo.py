@@ -706,6 +706,9 @@ def _setup_gcp_own(
         console.print(
             "  [red]Project does not appear to be registered with Earth Engine.[/red]"
         )
+        console.print(
+            "  [red]Without registration, pages that use Earth Engine will not render correctly.[/red]"
+        )
         raise typer.Exit(code=1)
     console.print("  [green]Verified: project is registered with Earth Engine.[/green]")
 
