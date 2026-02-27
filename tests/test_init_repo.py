@@ -301,16 +301,6 @@ _PROJECT_JSON = json.dumps({
     "lifecycleState": "ACTIVE",
 })
 
-_PERMS_JSON = json.dumps({
-    "permissions": [
-        "resourcemanager.projects.setIamPolicy",
-        "iam.serviceAccounts.create",
-    ]
-})
-
-_NO_PERMS_JSON = json.dumps({"permissions": []})
-
-
 def _existing_project_side_effect(cmd, **kwargs):
     """Side effect for an existing GCP project with full permissions."""
     if "describe" in cmd and "--format=value(projectId)" in cmd:
@@ -319,8 +309,10 @@ def _existing_project_side_effect(cmd, **kwargs):
         return _ok(stdout=_PROJECT_JSON)
     if "describe" in cmd and "--format=value(projectNumber)" in cmd:
         return _ok(stdout="123456789\n")
-    if "test-iam-permissions" in cmd:
-        return _ok(stdout=_PERMS_JSON)
+    if "auth" in cmd and "list" in cmd:
+        return _ok(stdout="user@example.com\n")
+    if "get-iam-policy" in cmd:
+        return _ok(stdout="roles/owner\n")
     return _ok()
 
 
@@ -374,10 +366,10 @@ class TestSetupGcpOwn:
     ):
         mock_run.side_effect = _existing_project_side_effect
         _setup_gcp_own("proj-id", None, "owner", "repo")
-        # Verify test-iam-permissions was called
+        # Verify get-iam-policy was called
         perm_calls = [
             c for c in mock_run.call_args_list
-            if "test-iam-permissions" in c[0][0]
+            if "get-iam-policy" in c[0][0]
         ]
         assert len(perm_calls) == 1
 
@@ -411,8 +403,10 @@ class TestSetupGcpOwn:
                 return _ok(stdout="proj-id\n")
             if "describe" in cmd and "--format=json" in cmd:
                 return _ok(stdout=_PROJECT_JSON)
-            if "test-iam-permissions" in cmd:
-                return _ok(stdout=_NO_PERMS_JSON)
+            if "auth" in cmd and "list" in cmd:
+                return _ok(stdout="user@example.com\n")
+            if "get-iam-policy" in cmd:
+                return _ok(stdout="\n")
             return _ok()
 
         mock_run.side_effect = side_effect

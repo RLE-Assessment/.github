@@ -396,20 +396,34 @@ def _setup_gcp_own(
                 Panel(details, title="Existing GCP Project", border_style="yellow")
             )
 
-        # Check user permissions
-        perms = subprocess.run(
+        # Check user permissions via IAM policy
+        acct_result = subprocess.run(
             [
                 "gcloud",
-                "projects",
-                "test-iam-permissions",
-                gcp_project_id,
-                "--permissions=resourcemanager.projects.setIamPolicy,iam.serviceAccounts.create",
-                "--format=json",
+                "auth",
+                "list",
+                "--filter=status:ACTIVE",
+                "--format=value(account)",
             ],
             capture_output=True,
             text=True,
         )
-        if perms.returncode != 0 or not perms.stdout.strip():
+        active_account = acct_result.stdout.strip()
+
+        perms = subprocess.run(
+            [
+                "gcloud",
+                "projects",
+                "get-iam-policy",
+                gcp_project_id,
+                "--flatten=bindings[].members",
+                f"--filter=bindings.members:user:{active_account}",
+                "--format=value(bindings.role)",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if perms.returncode != 0:
             console.print(
                 "\n  [red]Could not verify permissions on this project.[/red]\n"
             )
@@ -423,16 +437,17 @@ def _setup_gcp_own(
                 )
             raise typer.Exit(code=1)
 
-        granted = json.loads(perms.stdout).get("permissions", [])
-        if not granted:
+        roles = [r for r in perms.stdout.strip().splitlines() if r]
+        if not roles:
             console.print(
-                "\n  [red]You do not have sufficient permissions to modify "
+                f"\n  [red]{active_account} has no IAM roles on "
                 f"project {gcp_project_id}.[/red]\n"
             )
             raise typer.Exit(code=1)
 
+        role_list = ", ".join(roles)
         console.print(
-            f"\n  [green]Verified:[/green] you have modify permissions on {gcp_project_id}.\n"
+            f"\n  [green]Verified:[/green] {active_account} has roles: {role_list}\n"
         )
 
         # Always require explicit confirmation (ignore AUTO_CONFIRM)
