@@ -1,5 +1,6 @@
-Welcome to the GitHub organization for building Red List of Ecosystems (RLE) assessment reports.
+***Welcome to the GitHub organization for building Red List of Ecosystems (RLE) assessment reports.***
 
+The intent of this content is to make it easier to build IUCN [Red List of Ecosystems](https://iucnrle.org/) assessment reports following the [Global Ecosystem Typology](https://global-ecosystems.org/) classification framework. This workflow creates a website and PDF document with standard RLE calculations that can be future customized.
 
 ## Prerequisites
 
