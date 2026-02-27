@@ -347,7 +347,7 @@ def _setup_gcp_own(
     gh_owner: str,
     gh_repo_name: str,
     step_offset: int = 0,
-    total: int = 8,
+    total: int = 9,
 ) -> str:
     """Create or reuse a GCP project with full Workload Identity Federation.
 
@@ -532,6 +532,24 @@ def _setup_gcp_own(
             retries=3,
         )
 
+    # Earth Engine registration (manual step — requires accepting ToS)
+    ee_url = (
+        f"https://console.cloud.google.com/earth-engine/configuration"
+        f"?project={gcp_project_id}"
+    )
+    _step_header(step_offset + 4, total, "Register Project with Earth Engine")
+    console.print(
+        Panel(
+            f"[bold]The project must be registered with Earth Engine.[/bold]\n\n"
+            f"Open this URL in your browser and follow the prompts:\n\n"
+            f"  [link={ee_url}]{ee_url}[/link]\n\n"
+            f"[dim]This step requires accepting the Earth Engine Terms of Service\n"
+            f"and cannot be automated.[/dim]",
+            border_style="yellow",
+        )
+    )
+    typer.confirm("  Press Enter once registration is complete", default=True)
+
     run_command(
         [
             "gcloud",
@@ -543,7 +561,7 @@ def _setup_gcp_own(
             "--location=global",
             "--display-name=GitHub Actions Pool",
         ],
-        step=step_offset + 4,
+        step=step_offset + 5,
         total=total,
         title="Create Workload Identity Pool",
         description="creates a workload identity pool, which is a container for external identity providers. This pool allows GitHub Actions to authenticate to GCP without storing long-lived credentials as secrets.",
@@ -567,7 +585,7 @@ def _setup_gcp_own(
             "--attribute-condition=assertion.repository != ''",
             "--issuer-uri=https://token.actions.githubusercontent.com",
         ],
-        step=step_offset + 5,
+        step=step_offset + 6,
         total=total,
         title="Create OIDC Provider",
         description="creates an OpenID Connect (OIDC) identity provider within the pool. This configures how GitHub Actions OIDC tokens are validated and mapped to GCP identities — the key piece of Workload Identity Federation that eliminates the need for static service account keys.",
@@ -585,7 +603,7 @@ def _setup_gcp_own(
             f"--project={gcp_project_id}",
             "--display-name=GitHub Actions",
         ],
-        step=step_offset + 6,
+        step=step_offset + 7,
         total=total,
         title="Create Service Account",
         description="creates a dedicated service account that GitHub Actions will impersonate. This account will be granted only the minimum permissions needed: Earth Engine access and API usage.",
@@ -603,7 +621,7 @@ def _setup_gcp_own(
             f"--member=serviceAccount:{sa_email}",
             "--role=roles/earthengine.writer",
         ],
-        step=step_offset + 7,
+        step=step_offset + 8,
         total=total,
         title="Grant IAM Roles (1/2)",
         description="grants the Earth Engine Writer role to the service account, allowing it to read and write Earth Engine assets (images, feature collections, etc.) within this project.",
@@ -619,7 +637,7 @@ def _setup_gcp_own(
             f"--member=serviceAccount:{sa_email}",
             "--role=roles/serviceusage.serviceUsageConsumer",
         ],
-        step=step_offset + 7,
+        step=step_offset + 8,
         total=total,
         title="Grant IAM Roles (2/2)",
         description="grants the Service Usage Consumer role, which allows API calls to be billed to this project. Without this, the service account would not be able to make Earth Engine API requests.",
@@ -634,7 +652,7 @@ def _setup_gcp_own(
             gcp_project_id,
             "--format=value(projectNumber)",
         ],
-        step=step_offset + 8,
+        step=step_offset + 9,
         total=total,
         title="Get GCP Project Number",
         description="retrieves the GCP project number (a numeric identifier) needed to construct the Workload Identity Federation principal for the IAM binding.",
@@ -660,7 +678,7 @@ def _setup_gcp_own(
             "--role=roles/iam.workloadIdentityUser",
             f"--member={member}",
         ],
-        step=step_offset + 8,
+        step=step_offset + 9,
         total=total,
         title="Bind Repository to Service Account",
         description="creates an IAM binding that allows only this specific GitHub repository to impersonate the service account via Workload Identity Federation. This is the final link connecting GitHub Actions to GCP.",
@@ -679,7 +697,7 @@ def setup_gcp(
 ) -> str:
     """Set up GCP infrastructure. Returns the project number."""
 
-    final_total = total if total is not None else 8
+    final_total = total if total is not None else 9
     return _setup_gcp_own(
         gcp_project_id,
         gcp_project_name,
@@ -809,7 +827,7 @@ def cmd_all(
     if gh_owner is None:
         gh_owner = _get_gh_username()
     github_steps = 3
-    gcp_steps = 8
+    gcp_steps = 9
     secret_steps = 3
     total = github_steps + gcp_steps + secret_steps
 

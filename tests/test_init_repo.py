@@ -317,9 +317,10 @@ def _existing_project_side_effect(cmd, **kwargs):
 
 
 class TestSetupGcpOwn:
+    @patch("init_repo.typer.confirm", return_value=True)
     @patch("init_repo.time.sleep")
     @patch("init_repo.subprocess.run")
-    def test_creates_project_and_returns_number(self, mock_run, _mock_sleep):
+    def test_creates_project_and_returns_number(self, mock_run, _mock_sleep, _mock_confirm):
         def side_effect(cmd, **kwargs):
             if "describe" in cmd:
                 return _ok(stdout="123456789\n")
@@ -383,7 +384,11 @@ class TestSetupGcpOwn:
         mock_run.side_effect = _existing_project_side_effect
         init_repo.AUTO_CONFIRM = True
         _setup_gcp_own("proj-id", None, "owner", "repo")
-        mock_confirm.assert_called_once()
+        # Called twice: once for existing project confirmation, once for EE registration
+        assert mock_confirm.call_count >= 1
+        # First call should be the existing project confirmation
+        first_call_args = mock_confirm.call_args_list[0][0][0]
+        assert "existing project" in first_call_args.lower() or "Use existing" in first_call_args
 
     @patch("init_repo.typer.confirm", return_value=False)
     @patch("init_repo.time.sleep")
@@ -413,11 +418,12 @@ class TestSetupGcpOwn:
         with pytest.raises(typer.Exit):
             _setup_gcp_own("proj-id", None, "owner", "repo")
 
+    @patch("init_repo.typer.confirm", return_value=True)
     @patch("init_repo.typer.prompt", return_value="New Project Name")
     @patch("init_repo.time.sleep")
     @patch("init_repo.subprocess.run")
     def test_new_project_prompts_for_name_if_missing(
-        self, mock_run, _mock_sleep, mock_prompt
+        self, mock_run, _mock_sleep, mock_prompt, _mock_confirm
     ):
         def side_effect(cmd, **kwargs):
             # Project does not exist
