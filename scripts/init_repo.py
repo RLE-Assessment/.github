@@ -53,7 +53,7 @@ def _describe(text: str) -> None:
 def _show_command(cmd: list[str]) -> None:
     """Display the command that is about to run."""
     cmd_str = " ".join(cmd)
-    console.print(Syntax(cmd_str, "bash", theme="monokai", word_wrap=True, padding=1))
+    console.print(Syntax(cmd_str, "bash", theme="ansi_dark", word_wrap=True, padding=1))
 
 
 def _is_already_exists_error(stderr: str) -> bool:
