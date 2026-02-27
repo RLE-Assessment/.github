@@ -4,9 +4,9 @@ The intent of this content is to make it easier to build IUCN [Red List of Ecosy
 
 ## Prerequisites
 
-- [ ] A [Google Cloud Project (GCP)](https://console.cloud.google.com) account. 
+- [ ] A [Google Cloud Project (GCP)](https://console.cloud.google.com) account
   - If you need to create a new account, visit https://console.cloud.google.com 
-- [ ] A [GitHub](https://github.com/) account.
+- [ ] A [GitHub](https://github.com/) account
   - If you need to create a new account, visit https://github.com/signup
 
 
