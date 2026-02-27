@@ -343,13 +343,13 @@ def setup_github(
 
 def _setup_gcp_own(
     gcp_project_id: str,
-    gcp_project_name: str,
+    gcp_project_name: str | None,
     gh_owner: str,
     gh_repo_name: str,
     step_offset: int = 0,
     total: int = 8,
 ) -> str:
-    """Create a new GCP project with full Workload Identity Federation.
+    """Create or reuse a GCP project with full Workload Identity Federation.
 
     Returns the GCP project number (needed for secrets).
     """
@@ -370,16 +370,78 @@ def _setup_gcp_own(
         text=True,
     )
     if check.returncode == 0 and check.stdout.strip() == gcp_project_id:
-        _step_header(step_offset + 1, total, "Create GCP Project")
-        console.print(
-            f"\n  [yellow]Project {gcp_project_id} already exists — skipping creation.[/yellow]\n"
+        # --- Existing project: show info, check permissions, confirm ------
+        _step_header(step_offset + 1, total, "Use Existing GCP Project")
+
+        # Print project details
+        info = subprocess.run(
+            ["gcloud", "projects", "describe", gcp_project_id, "--format=json"],
+            capture_output=True,
+            text=True,
         )
+        if info.returncode == 0 and info.stdout.strip():
+            project_info = json.loads(info.stdout)
+            details = (
+                f"  Name:       {project_info.get('name', 'N/A')}\n"
+                f"  Project ID: {project_info.get('projectId', 'N/A')}\n"
+                f"  Number:     {project_info.get('projectNumber', 'N/A')}\n"
+                f"  State:      {project_info.get('lifecycleState', 'N/A')}"
+            )
+            if project_info.get("labels"):
+                labels = ", ".join(
+                    f"{k}={v}" for k, v in project_info["labels"].items()
+                )
+                details += f"\n  Labels:     {labels}"
+            console.print(
+                Panel(details, title="Existing GCP Project", border_style="yellow")
+            )
+
+        # Check user permissions
+        perms = subprocess.run(
+            [
+                "gcloud",
+                "projects",
+                "test-iam-permissions",
+                gcp_project_id,
+                "--permissions=resourcemanager.projects.setIamPolicy,iam.serviceAccounts.create",
+                "--format=json",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if perms.returncode != 0 or not perms.stdout.strip():
+            console.print(
+                "\n  [red]Could not verify permissions on this project.[/red]\n"
+            )
+            raise typer.Exit(code=1)
+
+        granted = json.loads(perms.stdout).get("permissions", [])
+        if not granted:
+            console.print(
+                "\n  [red]You do not have sufficient permissions to modify "
+                f"project {gcp_project_id}.[/red]\n"
+            )
+            raise typer.Exit(code=1)
+
+        console.print(
+            f"\n  [green]Verified:[/green] you have modify permissions on {gcp_project_id}.\n"
+        )
+
+        # Always require explicit confirmation (ignore AUTO_CONFIRM)
+        if not typer.confirm(f"  Use existing project {gcp_project_id}?", default=True):
+            console.print("  [dim]Aborted.[/dim]")
+            raise typer.Exit(code=0)
+
         subprocess.run(
             ["gcloud", "config", "set", "project", gcp_project_id],
             capture_output=True,
             text=True,
         )
     else:
+        # --- New project: require gcp_project_name -----------------------
+        if gcp_project_name is None:
+            gcp_project_name = typer.prompt("GCP project display name")
+
         run_command(
             [
                 "gcloud",
@@ -586,7 +648,7 @@ def _setup_gcp_own(
 
 def setup_gcp(
     gcp_project_id: str,
-    gcp_project_name: str,
+    gcp_project_name: str | None,
     gh_owner: str,
     gh_repo_name: str,
     step_offset: int = 0,
@@ -686,10 +748,9 @@ def cmd_all(
         prompt="GCP project ID",
         help="Google Cloud project ID (e.g. my-rle-project).",
     ),
-    gcp_project_name: str = typer.Option(
-        ...,
-        prompt="GCP project display name",
-        help="Human-readable GCP project name.",
+    gcp_project_name: str | None = typer.Option(
+        None,
+        help="Human-readable GCP project name (required only when creating a new project).",
     ),
     gh_owner: str | None = typer.Option(
         None,
@@ -712,17 +773,16 @@ def cmd_all(
     secret_steps = 2
     total = github_steps + gcp_steps + secret_steps
 
-    console.print(
-        Panel(
-            f"[bold]Initializing RLE assessment repository[/bold]\n\n"
-            f"  Country:     {country_name}\n"
-            f"  Repository:  {gh_owner}/{gh_repo_name}\n"
-            f"  GCP project: {gcp_project_id}\n"
-            f"  Total steps: {total}",
-            title="RLE Assessment Init",
-            border_style="blue",
-        )
+    summary = (
+        f"[bold]Initializing RLE assessment repository[/bold]\n\n"
+        f"  Country:     {country_name}\n"
+        f"  Repository:  {gh_owner}/{gh_repo_name}\n"
+        f"  GCP project: {gcp_project_id}\n"
     )
+    if gcp_project_name is not None:
+        summary += f"  GCP name:    {gcp_project_name}\n"
+    summary += f"  Total steps: {total}"
+    console.print(Panel(summary, title="RLE Assessment Init", border_style="blue"))
 
     check_prerequisites(need_gh=True, need_gcloud=True)
 
@@ -806,10 +866,9 @@ def gcp(
         prompt="GCP project ID",
         help="Google Cloud project ID.",
     ),
-    gcp_project_name: str = typer.Option(
-        ...,
-        prompt="GCP project display name",
-        help="Human-readable GCP project name.",
+    gcp_project_name: str | None = typer.Option(
+        None,
+        help="Human-readable GCP project name (required only when creating a new project).",
     ),
     gh_owner: str | None = typer.Option(
         None,

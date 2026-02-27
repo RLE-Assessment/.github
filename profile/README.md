@@ -32,7 +32,6 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
   --country-name "Ruritania" \
   --gcp-project-id your-project-id \
   --gcp-project-name "YOUR PROJECT NAME" \
-  --gh-owner YOUR-USER-NAME \
   --gh-repo-name YOUR-REPO-NAME
 ```
 
@@ -40,11 +39,16 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
 |---|---|
 | `--country-name` | Name of the country for the assessment |
 | `--gcp-project-id` | A globally unique GCP project identifier (lowercase letters, digits, and hyphens) |
-| `--gcp-project-name` | A human-readable display name for the GCP project |
-| `--gh-owner` | Your GitHub username or organization name |
+| `--gcp-project-name` | *(Optional)* A human-readable display name for the GCP project. Only required when creating a new project. |
 | `--gh-repo-name` | Name for the new GitHub repository |
+| `--gh-owner` | *(Optional)* GitHub username or organization. Defaults to the authenticated user. |
+| `--yes` / `-y` | *(Optional)* Skip confirmation prompts (useful for non-interactive use) |
 
-All options are prompted interactively if omitted. The script runs three phases:
+Most options are prompted interactively if omitted. The `--gh-owner` option defaults to the authenticated GitHub user when not specified; pass it explicitly to create the repository under an organization.
+
+The script displays each command with an explanation before running it and asks for confirmation. Use `--yes` to skip the prompts.
+
+The script runs three phases:
 
 1. **GitHub Repository Setup** -- creates the repo from the template and configures GitHub Pages deployment
 2. **GCP Project Setup** -- creates a GCP project, enables APIs, and sets up Workload Identity Federation for keyless authentication
@@ -69,8 +73,8 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
   --country-name Ruritania \
   --gcp-project-id test-rle-project \
   --gcp-project-name "TEST RLE PROJECT" \
-  --gh-owner tylere \
-  --gh-repo-name TEST-RLE-FROM-TEMPLATE
+  --gh-repo-name TEST-RLE-FROM-TEMPLATE \
+  --yes
 ```
 
 ## How to edit the assessment report

@@ -1,3 +1,4 @@
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -293,6 +294,36 @@ class TestSetupGithub:
             assert "repo" not in call_args or "create" not in call_args
 
 
+_PROJECT_JSON = json.dumps({
+    "projectId": "proj-id",
+    "name": "Proj Name",
+    "projectNumber": "123456789",
+    "lifecycleState": "ACTIVE",
+})
+
+_PERMS_JSON = json.dumps({
+    "permissions": [
+        "resourcemanager.projects.setIamPolicy",
+        "iam.serviceAccounts.create",
+    ]
+})
+
+_NO_PERMS_JSON = json.dumps({"permissions": []})
+
+
+def _existing_project_side_effect(cmd, **kwargs):
+    """Side effect for an existing GCP project with full permissions."""
+    if "describe" in cmd and "--format=value(projectId)" in cmd:
+        return _ok(stdout="proj-id\n")
+    if "describe" in cmd and "--format=json" in cmd:
+        return _ok(stdout=_PROJECT_JSON)
+    if "describe" in cmd and "--format=value(projectNumber)" in cmd:
+        return _ok(stdout="123456789\n")
+    if "test-iam-permissions" in cmd:
+        return _ok(stdout=_PERMS_JSON)
+    return _ok()
+
+
 class TestSetupGcpOwn:
     @patch("init_repo.time.sleep")
     @patch("init_repo.subprocess.run")
@@ -306,23 +337,106 @@ class TestSetupGcpOwn:
         number = _setup_gcp_own("proj-id", "Proj Name", "owner", "repo")
         assert number == "123456789"
 
+    @patch("init_repo.typer.confirm", return_value=True)
     @patch("init_repo.time.sleep")
     @patch("init_repo.subprocess.run")
-    def test_skips_creation_when_project_exists(self, mock_run, _mock_sleep):
-        def side_effect(cmd, **kwargs):
-            if "describe" in cmd and "--format=value(projectId)" in cmd:
-                return _ok(stdout="proj-id\n")
-            if "describe" in cmd and "--format=value(projectNumber)" in cmd:
-                return _ok(stdout="123456789\n")
-            return _ok()
-
-        mock_run.side_effect = side_effect
+    def test_skips_creation_when_project_exists(
+        self, mock_run, _mock_sleep, _mock_confirm
+    ):
+        mock_run.side_effect = _existing_project_side_effect
         number = _setup_gcp_own("proj-id", "Proj Name", "owner", "repo")
         assert number == "123456789"
         # Should NOT have a "projects create" call
         for call in mock_run.call_args_list:
             call_args = call[0][0]
             assert "create" not in call_args or "projects" not in call_args
+
+    @patch("init_repo.typer.confirm", return_value=True)
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_existing_project_prints_info(
+        self, mock_run, _mock_sleep, _mock_confirm
+    ):
+        mock_run.side_effect = _existing_project_side_effect
+        _setup_gcp_own("proj-id", None, "owner", "repo")
+        # Verify describe --format=json was called
+        json_calls = [
+            c for c in mock_run.call_args_list
+            if "describe" in c[0][0] and "--format=json" in c[0][0]
+        ]
+        assert len(json_calls) == 1
+
+    @patch("init_repo.typer.confirm", return_value=True)
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_existing_project_checks_permissions(
+        self, mock_run, _mock_sleep, _mock_confirm
+    ):
+        mock_run.side_effect = _existing_project_side_effect
+        _setup_gcp_own("proj-id", None, "owner", "repo")
+        # Verify test-iam-permissions was called
+        perm_calls = [
+            c for c in mock_run.call_args_list
+            if "test-iam-permissions" in c[0][0]
+        ]
+        assert len(perm_calls) == 1
+
+    @patch("init_repo.typer.confirm", return_value=True)
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_existing_project_requires_confirmation_even_with_auto_confirm(
+        self, mock_run, _mock_sleep, mock_confirm
+    ):
+        """typer.confirm must be called even when AUTO_CONFIRM is True."""
+        mock_run.side_effect = _existing_project_side_effect
+        init_repo.AUTO_CONFIRM = True
+        _setup_gcp_own("proj-id", None, "owner", "repo")
+        mock_confirm.assert_called_once()
+
+    @patch("init_repo.typer.confirm", return_value=False)
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_existing_project_denied_exits(
+        self, mock_run, _mock_sleep, _mock_confirm
+    ):
+        mock_run.side_effect = _existing_project_side_effect
+        with pytest.raises(typer.Exit):
+            _setup_gcp_own("proj-id", None, "owner", "repo")
+
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_existing_project_no_permissions_exits(self, mock_run, _mock_sleep):
+        def side_effect(cmd, **kwargs):
+            if "describe" in cmd and "--format=value(projectId)" in cmd:
+                return _ok(stdout="proj-id\n")
+            if "describe" in cmd and "--format=json" in cmd:
+                return _ok(stdout=_PROJECT_JSON)
+            if "test-iam-permissions" in cmd:
+                return _ok(stdout=_NO_PERMS_JSON)
+            return _ok()
+
+        mock_run.side_effect = side_effect
+        with pytest.raises(typer.Exit):
+            _setup_gcp_own("proj-id", None, "owner", "repo")
+
+    @patch("init_repo.typer.prompt", return_value="New Project Name")
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_new_project_prompts_for_name_if_missing(
+        self, mock_run, _mock_sleep, mock_prompt
+    ):
+        def side_effect(cmd, **kwargs):
+            # Project does not exist
+            if "describe" in cmd and "--format=value(projectId)" in cmd:
+                return _fail("NOT_FOUND")
+            if "describe" in cmd and "--format=value(projectNumber)" in cmd:
+                return _ok(stdout="123456789\n")
+            return _ok()
+
+        mock_run.side_effect = side_effect
+        number = _setup_gcp_own("proj-id", None, "owner", "repo")
+        assert number == "123456789"
+        mock_prompt.assert_called_once_with("GCP project display name")
 
 
 class TestSetupSecrets:
