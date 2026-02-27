@@ -46,7 +46,7 @@ def _step_header(step: int, total: int, title: str) -> None:
 
 def _describe(text: str) -> None:
     """Print a description paragraph."""
-    console.print(f"\n  {text}\n")
+    console.print(f"\n  The following command {text}\n")
 
 
 def _show_command(cmd: list[str]) -> None:
@@ -248,7 +248,7 @@ def setup_github(
             total=total,
             title="Create GitHub Repository",
             description=(
-                "Creates a new public GitHub repository from the RLE assessment\n"
+                "creates a new public GitHub repository from the RLE assessment\n"
                 "  template. The template includes the Quarto project structure,\n"
                 "  GitHub Actions deploy workflow, country configuration files,\n"
                 "  and all report chapter scaffolding."
@@ -266,7 +266,7 @@ def setup_github(
         total=total,
         title="Create GitHub Pages Environment",
         description=(
-            "Configures the repository's 'github-pages' deployment\n"
+            "configures the repository's 'github-pages' deployment\n"
             "  environment with a custom branch policy. This allows GitHub\n"
             "  Actions to deploy rendered content from specific branches\n"
             "  (like main) to GitHub Pages, rather than only from protected\n"
@@ -292,7 +292,7 @@ def setup_github(
         total=total,
         title="Add 'main' as Deployment Branch",
         description=(
-            "Adds the 'main' branch to the list of branches allowed to\n"
+            "adds the 'main' branch to the list of branches allowed to\n"
             "  deploy to the github-pages environment. Without this, the\n"
             "  GitHub Actions deploy workflow would be blocked from\n"
             "  publishing the rendered Quarto site."
@@ -350,7 +350,7 @@ def _setup_gcp_own(
             total=total,
             title="Create GCP Project",
             description=(
-                "Creates a new Google Cloud Platform project that will host\n"
+                "creates a new Google Cloud Platform project that will host\n"
                 "  the Earth Engine resources and service accounts for this\n"
                 "  assessment. The project is set as the default for subsequent\n"
                 "  gcloud commands."
@@ -374,7 +374,7 @@ def _setup_gcp_own(
         total=total,
         title="Ensure Owner Permissions",
         description=(
-            f"Grants the Owner role on the project to {active_account}.\n"
+            f"grants the Owner role on the project to {active_account}.\n"
             "  This ensures the current user has all permissions needed for\n"
             "  subsequent steps (enabling APIs, creating workload identity\n"
             "  pools, service accounts, and IAM bindings). The command is\n"
@@ -395,7 +395,7 @@ def _setup_gcp_own(
             step=step_offset + 3,
             total=total,
             title=f"Enable API ({i + 1}/{len(apis)})",
-            description=f"Enables {reason}",
+            description=f"enables the {reason}",
             retries=3,
         )
 
@@ -410,7 +410,7 @@ def _setup_gcp_own(
         total=total,
         title="Create Workload Identity Pool",
         description=(
-            "Creates a workload identity pool, which is a container for\n"
+            "creates a workload identity pool, which is a container for\n"
             "  external identity providers. This pool allows GitHub Actions\n"
             "  to authenticate to GCP without storing long-lived credentials\n"
             "  as secrets."
@@ -435,7 +435,7 @@ def _setup_gcp_own(
         total=total,
         title="Create OIDC Provider",
         description=(
-            "Creates an OpenID Connect (OIDC) identity provider within the\n"
+            "creates an OpenID Connect (OIDC) identity provider within the\n"
             "  pool. This configures how GitHub Actions OIDC tokens are\n"
             "  validated and mapped to GCP identities — the key piece of\n"
             "  Workload Identity Federation that eliminates the need for\n"
@@ -455,7 +455,7 @@ def _setup_gcp_own(
         total=total,
         title="Create Service Account",
         description=(
-            "Creates a dedicated service account that GitHub Actions will\n"
+            "creates a dedicated service account that GitHub Actions will\n"
             "  impersonate. This account will be granted only the minimum\n"
             "  permissions needed: Earth Engine access and API usage."
         ),
@@ -474,7 +474,7 @@ def _setup_gcp_own(
         total=total,
         title="Grant IAM Roles (1/2)",
         description=(
-            "Grants the Earth Engine Writer role to the service account,\n"
+            "grants the Earth Engine Writer role to the service account,\n"
             "  allowing it to read and write Earth Engine assets (images,\n"
             "  feature collections, etc.) within this project."
         ),
@@ -491,7 +491,7 @@ def _setup_gcp_own(
         total=total,
         title="Grant IAM Roles (2/2)",
         description=(
-            "Grants the Service Usage Consumer role, which allows API\n"
+            "grants the Service Usage Consumer role, which allows API\n"
             "  calls to be billed to this project. Without this, the\n"
             "  service account would not be able to make Earth Engine\n"
             "  API requests."
@@ -508,7 +508,7 @@ def _setup_gcp_own(
         total=total,
         title="Get GCP Project Number",
         description=(
-            "Retrieves the GCP project number (a numeric identifier)\n"
+            "retrieves the GCP project number (a numeric identifier)\n"
             "  needed to construct the Workload Identity Federation\n"
             "  principal for the IAM binding."
         ),
@@ -535,7 +535,7 @@ def _setup_gcp_own(
         total=total,
         title="Bind Repository to Service Account",
         description=(
-            "Creates an IAM binding that allows only this specific GitHub\n"
+            "creates an IAM binding that allows only this specific GitHub\n"
             "  repository to impersonate the service account via Workload\n"
             "  Identity Federation. This is the final link connecting\n"
             "  GitHub Actions to GCP."
@@ -595,7 +595,7 @@ def setup_secrets(
         total=total,
         title="Set GCP_WORKLOAD_IDENTITY_PROVIDER Secret",
         description=(
-            "Stores the full Workload Identity Provider resource path as a\n"
+            "stores the full Workload Identity Provider resource path as a\n"
             "  GitHub repository secret. The GitHub Actions deploy workflow\n"
             "  uses this value to request a federated token from GCP,\n"
             "  enabling keyless authentication."
@@ -612,7 +612,7 @@ def setup_secrets(
         total=total,
         title="Set GCP_SERVICE_ACCOUNT Secret",
         description=(
-            "Stores the service account email as a GitHub repository secret.\n"
+            "stores the service account email as a GitHub repository secret.\n"
             "  The deploy workflow uses this to specify which service account\n"
             "  to impersonate when authenticating to Earth Engine."
         ),
