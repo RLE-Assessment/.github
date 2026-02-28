@@ -666,25 +666,10 @@ def _setup_gcp_own(
         description="creates an IAM binding that allows only this specific GitHub repository to impersonate the service account via Workload Identity Federation. This is the final link connecting GitHub Actions to GCP.",
     )
 
-    # Earth Engine registration (manual step — requires accepting ToS)
-    ee_url = (
-        f"https://console.cloud.google.com/earth-engine/configuration"
-        f"?project={gcp_project_id}"
-    )
+    # Earth Engine registration
     _step_header(step_offset + 9, total, "Register Project with Earth Engine")
-    console.print(
-        Panel(
-            f"[bold]The project must be registered with Earth Engine.[/bold]\n\n"
-            f"Open this URL in your browser and follow the prompts:\n\n"
-            f"  [link={ee_url}]{ee_url}[/link]\n\n"
-            f"[dim]This step requires accepting the Earth Engine Terms of Service\n"
-            f"and cannot be automated.[/dim]",
-            border_style="yellow",
-        )
-    )
-    typer.confirm("  Press Enter once registration is complete", default=True)
 
-    # Verify registration by calling the Earth Engine API
+    # Check if already registered
     token_result = subprocess.run(
         ["gcloud", "auth", "print-access-token"],
         capture_output=True,
@@ -692,37 +677,70 @@ def _setup_gcp_own(
     )
     token = token_result.stdout.strip()
 
-    max_attempts = 6
-    for attempt in range(1, max_attempts + 1):
-        check = subprocess.run(
-            [
-                "curl",
-                "-sf",
-                "-H",
-                f"Authorization: Bearer {token}",
-                f"https://earthengine.googleapis.com/v1/projects/{gcp_project_id}/config",
-            ],
-            capture_output=True,
-            text=True,
+    check = subprocess.run(
+        [
+            "curl",
+            "-sf",
+            "-H",
+            f"Authorization: Bearer {token}",
+            f"https://earthengine.googleapis.com/v1/projects/{gcp_project_id}/config",
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if check.returncode == 0:
+        console.print(
+            "\n  [green]Project is already registered with Earth Engine — skipping.[/green]"
         )
-        if check.returncode == 0:
-            break
-        if attempt < max_attempts:
-            console.print(
-                f"  [yellow]Waiting for registration to propagate "
-                f"(attempt {attempt}/{max_attempts})...[/yellow]"
+    else:
+        ee_url = (
+            f"https://console.cloud.google.com/earth-engine/configuration"
+            f"?project={gcp_project_id}"
+        )
+        console.print(
+            Panel(
+                f"[bold]The project must be registered with Earth Engine.[/bold]\n\n"
+                f"Open this URL in your browser and follow the prompts:\n\n"
+                f"  [link={ee_url}]{ee_url}[/link]\n\n"
+                f"[dim]This step requires accepting the Earth Engine Terms of Service\n"
+                f"and cannot be automated.[/dim]",
+                border_style="yellow",
             )
-            time.sleep(10)
+        )
+        typer.confirm("  Press Enter once registration is complete", default=True)
 
-    if check.returncode != 0:
-        console.print(
-            "  [red]Project does not appear to be registered with Earth Engine.[/red]"
-        )
-        console.print(
-            "  [red]Without registration, pages that use Earth Engine will not render correctly.[/red]"
-        )
-        raise typer.Exit(code=1)
-    console.print("  [green]Verified: project is registered with Earth Engine.[/green]")
+        # Retry verification to allow for propagation delay
+        max_attempts = 6
+        for attempt in range(1, max_attempts + 1):
+            check = subprocess.run(
+                [
+                    "curl",
+                    "-sf",
+                    "-H",
+                    f"Authorization: Bearer {token}",
+                    f"https://earthengine.googleapis.com/v1/projects/{gcp_project_id}/config",
+                ],
+                capture_output=True,
+                text=True,
+            )
+            if check.returncode == 0:
+                break
+            if attempt < max_attempts:
+                console.print(
+                    f"  [yellow]Waiting for registration to propagate "
+                    f"(attempt {attempt}/{max_attempts})...[/yellow]"
+                )
+                time.sleep(10)
+
+        if check.returncode != 0:
+            console.print(
+                "  [red]Project does not appear to be registered with Earth Engine.[/red]"
+            )
+            console.print(
+                "  [red]Without registration, pages that use Earth Engine will not render correctly.[/red]"
+            )
+            raise typer.Exit(code=1)
+        console.print("  [green]Verified: project is registered with Earth Engine.[/green]")
 
     return project_number
 
