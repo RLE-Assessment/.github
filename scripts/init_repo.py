@@ -502,6 +502,7 @@ def _setup_gcp_own(
         total=total,
         title="Ensure Owner Permissions",
         description=f"grants the Owner role on the project to {active_account}. This ensures the current user has all permissions needed for subsequent steps (enabling APIs, creating workload identity pools, service accounts, and IAM bindings). The command is idempotent — if the role is already granted, this is a no-op.",
+        retries=3,
     )
 
     apis = [
@@ -591,6 +592,7 @@ def _setup_gcp_own(
         title="Create Service Account",
         description="creates a dedicated service account that GitHub Actions will impersonate. This account will be granted only the minimum permissions needed: Earth Engine access and API usage.",
         skip_if_exists=True,
+        retries=3,
     )
 
     sa_email = f"{SA_NAME}@{gcp_project_id}.iam.gserviceaccount.com"
