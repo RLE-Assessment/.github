@@ -320,7 +320,9 @@ class TestSetupGcpOwn:
     @patch("init_repo.typer.confirm", return_value=True)
     @patch("init_repo.time.sleep")
     @patch("init_repo.subprocess.run")
-    def test_creates_project_and_returns_number(self, mock_run, _mock_sleep, _mock_confirm):
+    def test_creates_project_and_returns_number(
+        self, mock_run, _mock_sleep, _mock_confirm
+    ):
         def side_effect(cmd, **kwargs):
             if "describe" in cmd:
                 return _ok(stdout="123456789\n")
@@ -437,6 +439,7 @@ class TestSetupGcpOwn:
         number = _setup_gcp_own("proj-id", None, "owner", "repo")
         assert number == "123456789"
         mock_prompt.assert_called_once_with("GCP project display name")
+
 
 
 class TestSetupSecrets:
