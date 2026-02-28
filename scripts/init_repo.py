@@ -665,6 +665,7 @@ def _setup_gcp_own(
         total=total,
         title="Bind Repository to Service Account",
         description="creates an IAM binding that allows only this specific GitHub repository to impersonate the service account via Workload Identity Federation. This is the final link connecting GitHub Actions to GCP.",
+        retries=3,
     )
 
     # Earth Engine registration
