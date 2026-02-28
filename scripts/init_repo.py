@@ -724,6 +724,8 @@ def _setup_gcp_own(
                     "-sf",
                     "-H",
                     f"Authorization: Bearer {token}",
+                    "-H",
+                    f"x-goog-user-project: {gcp_project_id}",
                     f"https://earthengine.googleapis.com/v1/projects/{gcp_project_id}/config",
                 ],
                 capture_output=True,
