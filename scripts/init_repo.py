@@ -367,6 +367,7 @@ def _setup_gcp_own(
     check = subprocess.run(
         ["gcloud", "projects", "describe", gcp_project_id, "--format=value(projectId)"],
         stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
         text=True,
     )
     if check.returncode == 0 and check.stdout.strip() == gcp_project_id:
