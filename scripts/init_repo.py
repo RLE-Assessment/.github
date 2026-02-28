@@ -691,17 +691,29 @@ def _setup_gcp_own(
         text=True,
     )
     token = token_result.stdout.strip()
-    check = subprocess.run(
-        [
-            "curl",
-            "-sf",
-            "-H",
-            f"Authorization: Bearer {token}",
-            f"https://earthengine.googleapis.com/v1/projects/{gcp_project_id}/config",
-        ],
-        capture_output=True,
-        text=True,
-    )
+
+    max_attempts = 6
+    for attempt in range(1, max_attempts + 1):
+        check = subprocess.run(
+            [
+                "curl",
+                "-sf",
+                "-H",
+                f"Authorization: Bearer {token}",
+                f"https://earthengine.googleapis.com/v1/projects/{gcp_project_id}/config",
+            ],
+            capture_output=True,
+            text=True,
+        )
+        if check.returncode == 0:
+            break
+        if attempt < max_attempts:
+            console.print(
+                f"  [yellow]Waiting for registration to propagate "
+                f"(attempt {attempt}/{max_attempts})...[/yellow]"
+            )
+            time.sleep(10)
+
     if check.returncode != 0:
         console.print(
             "  [red]Project does not appear to be registered with Earth Engine.[/red]"
