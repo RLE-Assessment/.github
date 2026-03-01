@@ -19,7 +19,7 @@ Instructions are provided for either local development or in a GCP Cloud Shell d
 <details>
 <summary><strong>Local development</strong></summary>
 
-Additional prerequisites for local development:
+Make sure additional prerequisites are installed:
 
 - [ ] [GitHub CLI (`gh`)](https://cli.github.com) installed and authenticated (`gh auth login`). This is used to create and configure GitHub repositories.
 - [ ] [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install) installed and authenticated (`gcloud auth login`). This is used to create and configure Google Cloud Platform projects.
@@ -37,6 +37,8 @@ In a browser, open a GCP Cloud Shell terminal by going to:
 https://shell.cloud.google.com/?show=terminal
 
 ![Cloud Shell terminal](../images/cloud_shell_screenshot.png)
+
+The Google Cloud Shell has prerequisites ([GitHub CLI (`gh`)](https://cli.github.com), [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install), [uv](https://docs.astral.sh/uv/)) automatically installed.
 
 </details>
 
