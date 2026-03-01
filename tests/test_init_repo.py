@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import init_repo
 from init_repo import (
     _get_gh_username,
+    _is_project_id_in_use_error,
     _setup_gcp_own,
     app,
     check_prerequisites,
@@ -440,6 +441,65 @@ class TestSetupGcpOwn:
         assert number == "123456789"
         mock_prompt.assert_called_once_with("GCP project display name")
 
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_delete_requested_project_exits_with_guidance(
+        self, mock_run, _mock_sleep
+    ):
+        delete_requested_json = json.dumps({
+            "projectId": "proj-id",
+            "name": "Proj Name",
+            "projectNumber": "123456789",
+            "lifecycleState": "DELETE_REQUESTED",
+        })
+
+        def side_effect(cmd, **kwargs):
+            if "describe" in cmd and "--format=value(projectId)" in cmd:
+                return _ok(stdout="proj-id\n")
+            if "describe" in cmd and "--format=json" in cmd:
+                return _ok(stdout=delete_requested_json)
+            return _ok()
+
+        mock_run.side_effect = side_effect
+        with pytest.raises(typer.Exit):
+            _setup_gcp_own("proj-id", None, "owner", "repo")
+        # Should NOT have attempted IAM checks or project creation
+        for call in mock_run.call_args_list:
+            call_args = call[0][0]
+            assert "get-iam-policy" not in call_args
+            assert "create" not in call_args or "projects" not in call_args
+
+    @patch("init_repo.typer.confirm", return_value=True)
+    @patch("init_repo.time.sleep")
+    @patch("init_repo.subprocess.run")
+    def test_new_project_already_in_use_exits_with_guidance(
+        self, mock_run, _mock_sleep, _mock_confirm
+    ):
+        def side_effect(cmd, **kwargs):
+            if "describe" in cmd and "--format=value(projectId)" in cmd:
+                return _fail("NOT_FOUND")
+            if "projects" in cmd and "create" in cmd:
+                return _fail(
+                    "ERROR: (gcloud.projects.create) Project creation failed. "
+                    "The project ID you specified is already in use by another project."
+                )
+            return _ok()
+
+        mock_run.side_effect = side_effect
+        with pytest.raises(typer.Exit):
+            _setup_gcp_own("proj-id", "Proj Name", "owner", "repo")
+
+
+class TestHelpers:
+    def test_is_project_id_in_use_error_matches(self):
+        assert _is_project_id_in_use_error(
+            "ERROR: (gcloud.projects.create) Project creation failed. "
+            "The project ID you specified is already in use by another project."
+        )
+
+    def test_is_project_id_in_use_error_no_match(self):
+        assert not _is_project_id_in_use_error("PERMISSION_DENIED")
+        assert not _is_project_id_in_use_error("")
 
 
 class TestSetupSecrets:

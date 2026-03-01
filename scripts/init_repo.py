@@ -60,6 +60,11 @@ def _is_already_exists_error(stderr: str) -> bool:
     return "ALREADY_EXISTS" in stderr or "already exists" in stderr
 
 
+def _is_project_id_in_use_error(stderr: str) -> bool:
+    """Check if a gcloud error indicates the project ID is in use."""
+    return "already in use by another project" in stderr
+
+
 def _is_retryable_error(stderr: str) -> bool:
     """Check if a gcloud error is likely caused by propagation delay."""
     return "PERMISSION_DENIED" in stderr or "does not exist" in stderr
@@ -397,6 +402,20 @@ def _setup_gcp_own(
                 Panel(details, title="Existing GCP Project", border_style="yellow")
             )
 
+            if project_info.get("lifecycleState") == "DELETE_REQUESTED":
+                console.print(
+                    Panel(
+                        f"This project is pending deletion and cannot be used.\n"
+                        f"GCP reserves deleted project IDs for up to 30 days.\n\n"
+                        f"To restore it, run:\n"
+                        f"  [bold]gcloud projects undelete {gcp_project_id}[/bold]\n\n"
+                        f"Then re-run this script.",
+                        title="Project Pending Deletion",
+                        border_style="red",
+                    )
+                )
+                raise typer.Exit(code=1)
+
         # Check user permissions via IAM policy
         acct_result = subprocess.run(
             [
@@ -466,20 +485,60 @@ def _setup_gcp_own(
         if gcp_project_name is None:
             gcp_project_name = typer.prompt("GCP project display name")
 
-        run_command(
-            [
-                "gcloud",
-                "projects",
-                "create",
-                gcp_project_id,
-                f"--name={gcp_project_name}",
-                "--set-as-default",
-            ],
-            step=step_offset + 1,
-            total=total,
-            title="Create GCP Project",
-            description="creates a new Google Cloud Platform project that will host the Earth Engine resources and service accounts for this assessment. The project is set as the default for subsequent gcloud commands.",
+        create_cmd = [
+            "gcloud",
+            "projects",
+            "create",
+            gcp_project_id,
+            f"--name={gcp_project_name}",
+            "--set-as-default",
+        ]
+
+        _step_header(step_offset + 1, total, "Create GCP Project")
+        _describe(
+            "creates a new Google Cloud Platform project that will host "
+            "the Earth Engine resources and service accounts for this "
+            "assessment. The project is set as the default for subsequent "
+            "gcloud commands.",
         )
+        _show_command(create_cmd)
+
+        if not AUTO_CONFIRM:
+            if not typer.confirm("  Run this command?", default=True):
+                console.print("  [dim]Skipped.[/dim]")
+                raise typer.Exit(code=0)
+
+        console.print("  [dim]Running...[/dim]")
+        create_result = subprocess.run(
+            create_cmd, capture_output=True, text=True,
+        )
+
+        if create_result.returncode != 0:
+            stderr = create_result.stderr or ""
+            if _is_project_id_in_use_error(stderr):
+                console.print(
+                    Panel(
+                        f"Project ID [bold]{gcp_project_id}[/bold] is already in use.\n\n"
+                        f"This usually means a project with this ID was recently\n"
+                        f"deleted and is still within the 30-day grace period.\n\n"
+                        f"Options:\n"
+                        f"  1. Restore the deleted project:\n"
+                        f"     [bold]gcloud projects undelete {gcp_project_id}[/bold]\n"
+                        f"     Then re-run this script.\n\n"
+                        f"  2. Choose a different project ID and re-run this script.",
+                        title="Project ID Conflict",
+                        border_style="red",
+                    )
+                )
+            else:
+                console.print("  [red]Failed[/red]")
+                if stderr.strip():
+                    console.print(
+                        Panel(stderr.strip(), title="Error", border_style="red")
+                    )
+            raise typer.Exit(code=1)
+
+        console.print("  [green]Done[/green]")
 
     # Get the current authenticated account for the Owner binding
     acct_result = subprocess.run(
