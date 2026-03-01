@@ -5,10 +5,7 @@ RLE assessment template, provisioning a Google Cloud Platform project,
 configuring Workload Identity Federation, and wiring up GitHub secrets.
 
 Usage:
-    python scripts/init_repo.py all --help
-    python scripts/init_repo.py github --help
-    python scripts/init_repo.py gcp --help
-    python scripts/init_repo.py secrets --help
+    python scripts/init_repo.py --help
 """
 
 # /// script
@@ -358,8 +355,8 @@ def setup_github(
     gh_owner: str,
     gh_repo_name: str,
     country_name: str,
-    step_offset: int = 0,
-    total: int = 4,
+    step_offset: int,
+    total: int,
 ) -> None:
     """Create the GitHub repository and configure GitHub Pages deployment."""
 
@@ -459,8 +456,8 @@ def _setup_gcp_own(
     gcp_project_name: str | None,
     gh_owner: str,
     gh_repo_name: str,
-    step_offset: int = 0,
-    total: int = 9,
+    step_offset: int,
+    total: int,
 ) -> str:
     """Create or reuse a GCP project with full Workload Identity Federation.
 
@@ -925,19 +922,18 @@ def setup_gcp(
     gcp_project_name: str | None,
     gh_owner: str,
     gh_repo_name: str,
-    step_offset: int = 0,
-    total: int | None = None,
+    step_offset: int,
+    total: int,
 ) -> str:
     """Set up GCP infrastructure. Returns the project number."""
 
-    final_total = total if total is not None else 9
     return _setup_gcp_own(
         gcp_project_id,
         gcp_project_name,
         gh_owner,
         gh_repo_name,
         step_offset=step_offset,
-        total=final_total,
+        total=total,
     )
 
 
@@ -951,8 +947,8 @@ def setup_secrets(
     gh_repo_name: str,
     gcp_project_id: str,
     project_number: str,
-    step_offset: int = 0,
-    total: int = 3,
+    step_offset: int,
+    total: int,
 ) -> None:
     """Set GitHub repository secrets for Workload Identity Federation."""
 
@@ -1017,18 +1013,10 @@ def setup_secrets(
 
 
 # ---------------------------------------------------------------------------
-# Typer app
+# CLI entry point
 # ---------------------------------------------------------------------------
 
-app = typer.Typer(
-    name="init-repo",
-    help="Initialize a new RLE assessment repository.",
-    add_completion=False,
-)
-
-
-@app.command(name="all")
-def cmd_all(
+def main(
     country_name: str = typer.Option(
         ...,
         prompt="Country name",
@@ -1054,7 +1042,11 @@ def cmd_all(
     ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
 ) -> None:
-    """Run all initialization steps: GitHub repo, GCP project, and secrets."""
+    """Initialize a new RLE assessment repository.
+
+    Creates a GitHub repository from the template, provisions a GCP project
+    with Workload Identity Federation, and configures GitHub secrets.
+    """
     global AUTO_CONFIRM
     AUTO_CONFIRM = yes
     if gh_owner is None:
@@ -1165,95 +1157,5 @@ def cmd_all(
     )
 
 
-@app.command()
-def github(
-    country_name: str = typer.Option(
-        ...,
-        prompt="Country name",
-        help="Name of the country for the assessment.",
-    ),
-    gh_owner: str | None = typer.Option(
-        None,
-        help="GitHub user or organization. Defaults to the authenticated user.",
-    ),
-    gh_repo_name: str = typer.Option(
-        ...,
-        prompt="GitHub repository name",
-        help="Name for the new GitHub repository.",
-    ),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
-) -> None:
-    """Create the GitHub repository and configure Pages deployment."""
-    global AUTO_CONFIRM
-    AUTO_CONFIRM = yes
-    check_prerequisites(need_gh=True, need_gcloud=False)
-    if gh_owner is None:
-        gh_owner = _get_gh_username()
-    setup_github(gh_owner, gh_repo_name, country_name)
-
-
-@app.command()
-def gcp(
-    gcp_project_id: str = typer.Option(
-        ...,
-        prompt="GCP project ID",
-        help="Google Cloud project ID.",
-    ),
-    gcp_project_name: str | None = typer.Option(
-        None,
-        help="Human-readable GCP project name (required only when creating a new project).",
-    ),
-    gh_owner: str | None = typer.Option(
-        None,
-        help="GitHub user or organization. Defaults to the authenticated user.",
-    ),
-    gh_repo_name: str = typer.Option(
-        ...,
-        prompt="GitHub repository name",
-        help="Name of the GitHub repository.",
-    ),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
-) -> None:
-    """Set up the GCP project and Workload Identity Federation."""
-    global AUTO_CONFIRM
-    AUTO_CONFIRM = yes
-    check_prerequisites(need_gh=False, need_gcloud=True)
-    if gh_owner is None:
-        gh_owner = _get_gh_username()
-    setup_gcp(gcp_project_id, gcp_project_name, gh_owner, gh_repo_name)
-
-
-@app.command()
-def secrets(
-    gh_owner: str | None = typer.Option(
-        None,
-        help="GitHub user or organization. Defaults to the authenticated user.",
-    ),
-    gh_repo_name: str = typer.Option(
-        ...,
-        prompt="GitHub repository name",
-        help="Name of the GitHub repository.",
-    ),
-    gcp_project_id: str = typer.Option(
-        ...,
-        prompt="GCP project ID",
-        help="Google Cloud project ID.",
-    ),
-    project_number: str = typer.Option(
-        ...,
-        prompt="GCP project number",
-        help="Numeric GCP project number (from gcloud projects describe).",
-    ),
-    yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
-) -> None:
-    """Set GitHub repository secrets for GCP authentication."""
-    global AUTO_CONFIRM
-    AUTO_CONFIRM = yes
-    check_prerequisites(need_gh=True, need_gcloud=False)
-    if gh_owner is None:
-        gh_owner = _get_gh_username()
-    setup_secrets(gh_owner, gh_repo_name, gcp_project_id, project_number)
-
-
 if __name__ == "__main__":
-    app()
+    typer.run(main)

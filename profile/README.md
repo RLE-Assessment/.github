@@ -72,11 +72,11 @@ The `uv run` command downloads the script directly from GitHub and automatically
 Replace the placeholder values below with your own before running:
 
 ```
-uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/init_repo.py all \
+uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/init_repo.py \
   --country-name "Ruritania" \
-  --gcp-project-id your-project-id \
-  --gcp-project-name "YOUR PROJECT NAME" \
-  --gh-repo-name YOUR-REPO-NAME
+  --gcp-project-id rle-ruritania \
+  --gcp-project-name "RLE Ruritania" \
+  --gh-repo-name rle-ruritania
 ```
 
 | Option | Description |
@@ -99,27 +99,6 @@ The script runs three phases:
 3. **GitHub Secrets** -- stores the WIF provider and service account as repository secrets
 
 The script is idempotent -- it skips resources that already exist, so it is safe to re-run if a step fails partway through.
-
-### Running individual phases
-
-Each phase can be run independently:
-
-```
-uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/init_repo.py github --help
-uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/init_repo.py gcp --help
-uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/init_repo.py secrets --help
-```
-
-### Test example
-
-```
-uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/init_repo.py all \
-  --country-name Ruritania \
-  --gcp-project-id test-rle-project \
-  --gcp-project-name "TEST RLE PROJECT" \
-  --gh-repo-name TEST-RLE-FROM-TEMPLATE \
-  --yes
-```
 
 ## How to edit the assessment report
 
