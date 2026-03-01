@@ -16,10 +16,12 @@ Usage:
 # dependencies = ["typer>=0.20", "rich>=13"]
 # ///
 
+import base64
 import json
 import subprocess
 import shutil
 import time
+from datetime import date
 
 import typer
 from rich.console import Console
@@ -254,12 +256,110 @@ def _get_gh_username() -> str:
 # ---------------------------------------------------------------------------
 
 
+def customize_quarto_config(
+    gh_owner: str,
+    gh_repo_name: str,
+    country_name: str,
+    step: int,
+    total: int,
+) -> None:
+    """Replace template placeholders in _quarto.yml with actual values."""
+    _step_header(step, total, "Customize _quarto.yml")
+    _describe(
+        "updates the _quarto.yml configuration file in the new repository, "
+        "replacing template placeholders with the country name, current year, "
+        "and today's date."
+    )
+
+    repo = f"{gh_owner}/{gh_repo_name}"
+    today = date.today()
+
+    replacements = {
+        "PLACEHOLDER_COUNTRY_NAME": country_name,
+        "year: 2000": f"year: {today.year}",
+        'date: "2000-01-01"': f'date: "{today.isoformat()}"',
+    }
+    console.print("  Replacements:")
+    for old, new in replacements.items():
+        console.print(f"    {old}  →  {new}")
+
+    if not AUTO_CONFIRM:
+        if not typer.confirm("\n  Apply these changes?", default=True):
+            console.print("  [dim]Skipped.[/dim]")
+            raise typer.Exit(code=0)
+
+    # Fetch the file via GitHub API (with retries for template propagation)
+    console.print("  [dim]Fetching _quarto.yml...[/dim]")
+    max_attempts = 6
+    for attempt in range(1, max_attempts + 1):
+        result = subprocess.run(
+            ["gh", "api", f"repos/{repo}/contents/_quarto.yml"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            break
+        if attempt < max_attempts:
+            console.print(
+                f"  [yellow]File not yet available — waiting 10 seconds "
+                f"(attempt {attempt}/{max_attempts})...[/yellow]"
+            )
+            time.sleep(10)
+
+    if result.returncode != 0:
+        console.print("  [red]Failed to fetch _quarto.yml[/red]")
+        if result.stderr and result.stderr.strip():
+            console.print(Panel(result.stderr.strip(), title="Error", border_style="red"))
+        raise typer.Exit(code=1)
+
+    data = json.loads(result.stdout)
+    file_sha = data["sha"]
+    content = base64.b64decode(data["content"]).decode("utf-8")
+
+    # Perform replacements
+    new_content = content
+    for old, new in replacements.items():
+        new_content = new_content.replace(old, new)
+
+    if new_content == content:
+        console.print("  [yellow]No placeholders found — skipping.[/yellow]")
+        return
+
+    # Push the updated file
+    new_content_b64 = base64.b64encode(new_content.encode("utf-8")).decode("ascii")
+    update_payload = json.dumps({
+        "message": f"Configure assessment for {country_name}",
+        "content": new_content_b64,
+        "sha": file_sha,
+    })
+
+    console.print("  [dim]Updating _quarto.yml...[/dim]")
+    result = subprocess.run(
+        [
+            "gh", "api",
+            f"repos/{repo}/contents/_quarto.yml",
+            "-X", "PUT",
+            "--input", "-",
+        ],
+        capture_output=True,
+        text=True,
+        input=update_payload,
+    )
+    if result.returncode != 0:
+        console.print("  [red]Failed to update _quarto.yml[/red]")
+        if result.stderr and result.stderr.strip():
+            console.print(Panel(result.stderr.strip(), title="Error", border_style="red"))
+        raise typer.Exit(code=1)
+
+    console.print("  [green]Done — _quarto.yml customized[/green]")
+
+
 def setup_github(
     gh_owner: str,
     gh_repo_name: str,
     country_name: str,
     step_offset: int = 0,
-    total: int = 3,
+    total: int = 4,
 ) -> None:
     """Create the GitHub repository and configure GitHub Pages deployment."""
 
@@ -335,6 +435,14 @@ def setup_github(
         title="Add 'main' as Deployment Branch",
         description="adds the 'main' branch to the list of branches allowed to deploy to the github-pages environment. Without this, the GitHub Actions deploy workflow would be blocked from publishing the rendered Quarto site.",
         skip_if_exists=True,
+    )
+
+    customize_quarto_config(
+        gh_owner,
+        gh_repo_name,
+        country_name,
+        step=step_offset + 4,
+        total=total,
     )
 
     repo_url = f"https://github.com/{gh_owner}/{gh_repo_name}"
@@ -951,7 +1059,7 @@ def cmd_all(
     AUTO_CONFIRM = yes
     if gh_owner is None:
         gh_owner = _get_gh_username()
-    github_steps = 3
+    github_steps = 4
     gcp_steps = 9
     secret_steps = 3
     total = github_steps + gcp_steps + secret_steps
@@ -998,9 +1106,30 @@ def cmd_all(
         total=total,
     )
 
-    # Re-trigger the deploy workflow now that the environment and secrets
-    # are fully configured.  The initial run (triggered by repo creation)
-    # likely failed because neither was in place yet.
+    # Set the SETUP_COMPLETE variable so the deploy workflow is no longer
+    # skipped.  The workflow's job-level condition checks for this variable.
+    console.print(Rule("[bold blue]Enable Deploy Workflow"))
+    gate_cmd = [
+        "gh",
+        "variable",
+        "set",
+        "SETUP_COMPLETE",
+        "--body=true",
+        f"--repo={gh_owner}/{gh_repo_name}",
+    ]
+    _show_command(gate_cmd)
+    gate = subprocess.run(gate_cmd, capture_output=True, text=True)
+    if gate.returncode == 0:
+        console.print("  [green]SETUP_COMPLETE variable set.[/green]")
+    else:
+        console.print("  [yellow]Could not set SETUP_COMPLETE variable.[/yellow]")
+        console.print(
+            "  [dim]Manually run: gh variable set SETUP_COMPLETE --body true "
+            f"--repo={gh_owner}/{gh_repo_name}[/dim]"
+        )
+
+    # Re-trigger the deploy workflow now that the environment, secrets,
+    # and gate variable are fully configured.
     console.print(Rule("[bold blue]Trigger Deploy Workflow"))
     trigger_cmd = [
         "gh",
