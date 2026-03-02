@@ -214,7 +214,8 @@ def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True, need_pix
             )
             raise typer.Exit(code=1)
 
-        result = subprocess.run(
+        # Try to get the active account name for display
+        acct = subprocess.run(
             [
                 "gcloud",
                 "auth",
@@ -225,19 +226,29 @@ def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True, need_pix
             capture_output=True,
             text=True,
         )
-        if result.returncode != 0 or not result.stdout.strip():
-            console.print(
-                Panel(
-                    "[bold red]Not authenticated to Google Cloud.[/bold red]\n\n"
-                    "Run the following command and follow the prompts:\n"
-                    "  [bold]gcloud auth login[/bold]",
-                    title="Authentication required",
-                )
+        # Fall back to checking if gcloud can produce an access token
+        # (works in Cloud Shell where auth list may not show an account)
+        if acct.returncode != 0 or not acct.stdout.strip():
+            token = subprocess.run(
+                ["gcloud", "auth", "print-access-token"],
+                capture_output=True,
+                text=True,
             )
-            raise typer.Exit(code=1)
-        console.print(
-            f"  [green]Google Cloud CLI authenticated as {result.stdout.strip()}[/green]"
-        )
+            if token.returncode != 0:
+                console.print(
+                    Panel(
+                        "[bold red]Not authenticated to Google Cloud.[/bold red]\n\n"
+                        "Run the following command and follow the prompts:\n"
+                        "  [bold]gcloud auth login[/bold]",
+                        title="Authentication required",
+                    )
+                )
+                raise typer.Exit(code=1)
+            console.print("  [green]Google Cloud CLI authenticated[/green]")
+        else:
+            console.print(
+                f"  [green]Google Cloud CLI authenticated as {acct.stdout.strip()}[/green]"
+            )
 
     if need_pixi:
         if shutil.which("pixi") is None:
