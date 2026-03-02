@@ -241,11 +241,11 @@ def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True, need_pix
                         Panel(
                             "[bold red]Google Cloud Shell is not authorized.[/bold red]\n\n"
                             "Cloud Shell requires you to explicitly grant the gcloud CLI\n"
-                            "access to your Google account. Run any gcloud command to\n"
-                            "trigger the authorization dialog:\n\n"
-                            "  [bold]gcloud projects list[/bold]\n\n"
-                            "A browser popup will ask you to [bold]Authorize Cloud Shell[/bold].\n"
-                            "Click Authorize, then re-run this script.",
+                            "access to your Google account. Run:\n\n"
+                            "  [bold]gcloud auth login[/bold]\n\n"
+                            "Cloud Shell may say 'You are already authenticated' and ask\n"
+                            "'Do you wish to proceed anyway?' — answer [bold]Yes[/bold].\n"
+                            "Complete the sign-in flow, then re-run this script.",
                             title="Authorization required",
                         )
                     )
