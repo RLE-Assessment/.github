@@ -1260,10 +1260,10 @@ def main(
             f"  Repository: https://github.com/{gh_owner}/{gh_repo_name}\n"
             f"  Next steps:\n"
             f"    1. cd to your projects directory\n"
-            f"    2. Clone the repository:  gh repo clone {gh_owner}/{gh_repo_name}\n"
-            f"    3. cd {gh_repo_name}\n"
-            f"    4. Install packages:      pixi shell\n"
-            f"    5. Preview the site:      quarto preview",
+            f"    2. Clone the repository:             [bold]gh repo clone {gh_owner}/{gh_repo_name}[/bold]\n"
+            f"    3. cd to your new project directory: [bold]cd {gh_repo_name}[/bold]\n"
+            f"    4. Install packages:                 [bold]pixi shell[/bold]\n"
+            f"    5. Preview the site:                 [bold]quarto preview[/bold]",
             title="Setup Complete",
             border_style="green",
         )
