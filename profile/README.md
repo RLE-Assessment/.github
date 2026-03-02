@@ -96,7 +96,7 @@ The script is idempotent -- it skips resources that already exist, so it is safe
 
 1. **Create a local clone**
 
-Clone the repository for editing on your local computer or within Cloud Shell. Change the working directory to be the root of the cloned repository.
+    Clone the repository for editing on your local computer or within Cloud Shell. Change the working directory to be the root of the cloned repository.
 
     ```
     gh repo clone ${GH_OWNER}/${GH_REPO_NAME}
