@@ -14,6 +14,8 @@ The intent of this content is to make it easier to build IUCN [Red List of Ecosy
 
 Creating a new assessment report repository involves configuring a GitHub code repository (for content) and a Google Cloud Platform project (for data access and storage). An initialization script automates the full setup process: creating a GitHub repository from the template, provisioning a GCP project with Workload Identity Federation, and configuring GitHub secrets. The script displays each command it runs with a detailed explanation of what it does and why.
 
+### Open a Development Environment
+
 Instructions are provided for either local development or in a GCP Cloud Shell development.
 
 <details>
@@ -24,6 +26,7 @@ Make sure additional prerequisites are installed:
 - [ ] [GitHub CLI (`gh`)](https://cli.github.com) installed and authenticated (`gh auth login`). This is used to create and configure GitHub repositories.
 - [ ] [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install) installed and authenticated (`gcloud auth login`). This is used to create and configure Google Cloud Platform projects.
 - [ ] [uv](https://docs.astral.sh/uv/) installed. This is used to run the initialization script (dependencies are resolved automatically).
+- [ ] [pixi](https://pixi.sh) installed. This is used to manage the project's development environment and dependencies.
 
 The script checks for these prerequisites and gives clear instructions if anything is missing.
 
@@ -54,7 +57,8 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
   --country-name "Ruritania" \
   --gcp-project-id rle-ruritania \
   --gcp-project-name "RLE Ruritania" \
-  --gh-repo-name rle-ruritania
+  --gh-repo-name rle-ruritania \
+  --project-dir projects
 ```
 
 | Option | Description |
@@ -64,6 +68,7 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
 | `--gcp-project-name` | *(Optional)* Display name for the GCP project (only needed when creating a new project; prompted if omitted) |
 | `--gh-repo-name` | Name for the new GitHub repository |
 | `--gh-owner` | *(Optional)* GitHub username or organization. Defaults to the authenticated user. |
+| `--project-dir` | Directory in which to clone the repository (use `.` for current directory) |
 | `--yes` / `-y` | *(Optional)* Skip confirmation prompts (useful for non-interactive use) |
 
 Most options are prompted interactively if omitted. The `--gh-owner` option defaults to the authenticated GitHub user when not specified; pass it explicitly to create the repository under an organization.
@@ -78,7 +83,31 @@ The script runs three phases:
 
 The script is idempotent -- it skips resources that already exist, so it is safe to re-run if a step fails partway through.
 
-## How to edit the assessment report
+## Edit the assessment report
+
+1. **Open the repository files in an editor**
+
+    <details>
+    <summary><strong>Local development</strong></summary>
+
+    ...
+
+    </details>
+
+    <details open>
+    <summary><strong>GCP Cloud Shell development</strong></summary>
+
+    In a browser, open a GCP Cloud Shell terminal by going to:
+
+    https://shell.cloud.google.com/?show=terminal
+
+    In the Cloud Shell terminal, enter
+
+    ```
+    cloudshell open-workspace .
+    ```
+
+    </details>
 
 1. **Install `pixi`**
 
@@ -112,29 +141,6 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     pixi shell
     ```
 
-1. **Open the repository files in an editor**
-
-    <details>
-    <summary><strong>Local development</strong></summary>
-
-    ...
-
-    </details>
-
-    <details open>
-    <summary><strong>GCP Cloud Shell development</strong></summary>
-
-    In the Cloud Shell terminal, enter
-
-    ```
-    cloudshell open-workspace .
-    ```
-
-
-
-    </details>
-
-
 1. **Preview the website**
 
     In the Cloud Shell terminal, run: 
@@ -147,4 +153,4 @@ The script is idempotent -- it skips resources that already exist, so it is safe
 
 1. **Publish the website***
 
-    ***TODO...***
+    The website is automatically updated whenever you push committed changes to GitHub.

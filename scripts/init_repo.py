@@ -15,6 +15,7 @@ Usage:
 
 import base64
 import json
+import os
 import subprocess
 import shutil
 import time
@@ -80,6 +81,7 @@ def run_command(
     input_data: str | None = None,
     skip_if_exists: bool = False,
     retries: int = 0,
+    cwd: str | None = None,
 ) -> subprocess.CompletedProcess:
     """Run a shell command with Rich output describing what it does and why.
 
@@ -103,6 +105,8 @@ def run_command(
         Number of times to retry on transient errors such as PERMISSION_DENIED
         or "does not exist" (with a 30-second wait between attempts).  Useful
         after IAM or resource changes that need time to propagate.
+    cwd : str | None
+        Working directory for the command.
 
     Returns
     -------
@@ -127,6 +131,7 @@ def run_command(
             capture_output=need_capture,
             text=True,
             input=input_data,
+            cwd=cwd,
         )
 
         if result.returncode == 0:
@@ -162,7 +167,7 @@ def run_command(
 # ---------------------------------------------------------------------------
 
 
-def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True) -> None:
+def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True, need_pixi: bool = False) -> None:
     """Verify that required CLIs are installed and authenticated.
 
     If a tool is missing or the user is not logged in, prints clear
@@ -233,6 +238,19 @@ def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True) -> None:
         console.print(
             f"  [green]Google Cloud CLI authenticated as {result.stdout.strip()}[/green]"
         )
+
+    if need_pixi:
+        if shutil.which("pixi") is None:
+            console.print(
+                Panel(
+                    "[bold red]pixi is not installed.[/bold red]\n\n"
+                    "Install it from: https://pixi.sh\n"
+                    "  [bold]curl -fsSL https://pixi.sh/install.sh | sh[/bold]",
+                    title="Missing prerequisite",
+                )
+            )
+            raise typer.Exit(code=1)
+        console.print("  [green]pixi installed[/green]")
 
 
 def _get_gh_username() -> str:
@@ -1126,6 +1144,52 @@ def setup_secrets(
 
 
 # ---------------------------------------------------------------------------
+# Phase 4 – Local setup
+# ---------------------------------------------------------------------------
+
+
+def setup_local(
+    gh_owner: str,
+    gh_repo_name: str,
+    project_dir: str,
+    step_offset: int,
+    total: int,
+) -> str:
+    """Clone the repository and install packages.
+
+    Returns the path to the cloned repository.
+    """
+    clone_path = os.path.join(project_dir, gh_repo_name)
+
+    if os.path.isdir(clone_path):
+        _step_header(step_offset + 1, total, "Clone Repository")
+        console.print(
+            f"\n  [yellow]Directory {clone_path} already exists — skipping clone.[/yellow]\n"
+        )
+    else:
+        run_command(
+            ["gh", "repo", "clone", f"{gh_owner}/{gh_repo_name}", clone_path],
+            step=step_offset + 1,
+            total=total,
+            title="Clone Repository",
+            description="clones the newly created GitHub repository to your "
+            "local machine so you can edit and preview the assessment report.",
+        )
+
+    run_command(
+        ["pixi", "install"],
+        step=step_offset + 2,
+        total=total,
+        title="Install Packages",
+        description="installs the project's dependencies (Python, Quarto, "
+        "Jupyter, and geospatial libraries) into an isolated pixi environment.",
+        cwd=clone_path,
+    )
+
+    return clone_path
+
+
+# ---------------------------------------------------------------------------
 # CLI entry point
 # ---------------------------------------------------------------------------
 
@@ -1153,12 +1217,18 @@ def main(
         prompt="GitHub repository name",
         help="Name for the new GitHub repository.",
     ),
+    project_dir: str = typer.Option(
+        ...,
+        prompt="Project directory (where to clone the repository)",
+        help="Directory in which to clone the repository.",
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
 ) -> None:
     """Initialize a new RLE assessment repository.
 
     Creates a GitHub repository from the template, provisions a GCP project
-    with Workload Identity Federation, and configures GitHub secrets.
+    with Workload Identity Federation, configures GitHub secrets, and clones
+    the repository locally.
     """
     global AUTO_CONFIRM
     AUTO_CONFIRM = yes
@@ -1167,7 +1237,8 @@ def main(
     github_steps = 5
     gcp_steps = 9
     secret_steps = 3
-    total = github_steps + gcp_steps + secret_steps
+    local_steps = 2
+    total = github_steps + gcp_steps + secret_steps + local_steps
 
     summary = (
         f"[bold]Initializing RLE assessment repository[/bold]\n\n"
@@ -1177,10 +1248,11 @@ def main(
     )
     if gcp_project_name is not None:
         summary += f"  GCP name:    {gcp_project_name}\n"
+    summary += f"  Project dir: {os.path.abspath(project_dir)}\n"
     summary += f"  Total steps: {total}"
     console.print(Panel(summary, title="RLE Assessment Init", border_style="blue"))
 
-    check_prerequisites(need_gh=True, need_gcloud=True)
+    check_prerequisites(need_gh=True, need_gcloud=True, need_pixi=True)
 
     console.print(Rule("[bold blue]Phase 1: GitHub Repository Setup"))
     setup_github(
@@ -1253,17 +1325,25 @@ def main(
             "  [dim]Re-run the deploy workflow manually from the Actions tab.[/dim]"
         )
 
+    console.print(Rule("[bold blue]Phase 4: Local Setup"))
+    clone_path = setup_local(
+        gh_owner,
+        gh_repo_name,
+        project_dir,
+        step_offset=github_steps + gcp_steps + secret_steps,
+        total=total,
+    )
+
     console.print()
     console.print(
         Panel(
             f"[bold green]All done![/bold green]\n\n"
-            f"  Repository: https://github.com/{gh_owner}/{gh_repo_name}\n"
-            f"  Next steps:\n"
-            f"    1. cd to your projects directory\n"
-            f"    2. Clone the repository:             [bold]gh repo clone {gh_owner}/{gh_repo_name}[/bold]\n"
-            f"    3. cd to your new project directory: [bold]cd {gh_repo_name}[/bold]\n"
-            f"    4. Install packages:                 [bold]pixi shell[/bold]\n"
-            f"    5. Preview the site:                 [bold]quarto preview[/bold]",
+            f"  Repository:  https://github.com/{gh_owner}/{gh_repo_name}\n"
+            f"  Local clone: {os.path.abspath(clone_path)}\n\n"
+            f"  To preview the site:\n"
+            f"    [bold]cd {os.path.abspath(clone_path)}[/bold]\n"
+            f"    [bold]pixi shell[/bold]\n"
+            f"    [bold]quarto preview[/bold]",
             title="Setup Complete",
             border_style="green",
         )
