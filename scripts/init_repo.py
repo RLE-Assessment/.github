@@ -235,14 +235,31 @@ def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True, need_pix
                 text=True,
             )
             if token.returncode != 0:
-                console.print(
-                    Panel(
-                        "[bold red]Not authenticated to Google Cloud.[/bold red]\n\n"
-                        "Run the following command and follow the prompts:\n"
-                        "  [bold]gcloud auth login[/bold]",
-                        title="Authentication required",
+                in_cloud_shell = os.environ.get("CLOUD_SHELL") == "true" or os.environ.get("DEVSHELL_PROJECT_ID")
+                if in_cloud_shell:
+                    console.print(
+                        Panel(
+                            "[bold red]Google Cloud Shell is not authorized.[/bold red]\n\n"
+                            "Cloud Shell requires you to explicitly grant the gcloud CLI\n"
+                            "access to your Google account. Run any gcloud command to\n"
+                            "trigger the authorization dialog:\n\n"
+                            "  [bold]gcloud projects list[/bold]\n\n"
+                            "A browser popup will ask you to [bold]Authorize Cloud Shell[/bold].\n"
+                            "Click Authorize, then re-run this script.",
+                            title="Authorization required",
+                        )
                     )
-                )
+                else:
+                    console.print(
+                        Panel(
+                            "[bold red]Not authenticated to Google Cloud.[/bold red]\n\n"
+                            "The gcloud CLI needs explicit consent to access your\n"
+                            "Google account. Run the following command, which will\n"
+                            "open a browser for you to sign in and grant access:\n\n"
+                            "  [bold]gcloud auth login[/bold]",
+                            title="Authentication required",
+                        )
+                    )
                 raise typer.Exit(code=1)
             console.print("  [green]Google Cloud CLI authenticated[/green]")
         else:
