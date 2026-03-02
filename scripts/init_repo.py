@@ -1232,6 +1232,9 @@ def main(
     """
     global AUTO_CONFIRM
     AUTO_CONFIRM = yes
+
+    check_prerequisites(need_gh=True, need_gcloud=True, need_pixi=True)
+
     if gh_owner is None:
         gh_owner = _get_gh_username()
     github_steps = 5
@@ -1251,8 +1254,6 @@ def main(
     summary += f"  Project dir: {os.path.abspath(project_dir)}\n"
     summary += f"  Total steps: {total}"
     console.print(Panel(summary, title="RLE Assessment Init", border_style="blue"))
-
-    check_prerequisites(need_gh=True, need_gcloud=True, need_pixi=True)
 
     console.print(Rule("[bold blue]Phase 1: GitHub Repository Setup"))
     setup_github(
