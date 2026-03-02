@@ -43,28 +43,6 @@ The Google Cloud Shell has prerequisites ([GitHub CLI (`gh`)](https://cli.github
 </details>
 
 
-### EXTRA
-
-<details>
-<summary><strong>Local development</strong></summary>
-
-...
-
-</details>
-
-<details>
-<summary><strong>GCP Cloud Shell development</strong></summary>
-
-In the Cloud Shell terminal, enter
-
-```
-cloudshell open-workspace .
-```
-
-</details>
-
-
-
 ### Run the initialization script
 
 The `uv run` command downloads the script directly from GitHub and automatically installs its dependencies (in an isolated, temporary environment) before running it -- no cloning or manual setup required.
