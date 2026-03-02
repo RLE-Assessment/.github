@@ -253,6 +253,97 @@ def _get_gh_username() -> str:
 # ---------------------------------------------------------------------------
 
 
+def customize_pyproject(
+    gh_owner: str,
+    gh_repo_name: str,
+    step: int,
+    total: int,
+) -> None:
+    """Replace the template project name in pyproject.toml with the repo name."""
+    _step_header(step, total, "Customize pyproject.toml")
+    _describe(
+        "updates the pyproject.toml file in the new repository, "
+        "replacing the template project name with the repository name."
+    )
+
+    repo = f"{gh_owner}/{gh_repo_name}"
+    file_path = "pyproject.toml"
+
+    old_name = "TEMPLATE-rle-assessment"
+    new_name = gh_repo_name
+
+    console.print(f"  Replacement:")
+    console.print(f"    name = \"{old_name}\"  →  name = \"{new_name}\"")
+
+    if not AUTO_CONFIRM:
+        if not typer.confirm("\n  Apply this change?", default=True):
+            console.print("  [dim]Skipped.[/dim]")
+            raise typer.Exit(code=0)
+
+    # Fetch the file via GitHub API (with retries for template propagation)
+    console.print(f"  [dim]Fetching {file_path}...[/dim]")
+    max_attempts = 6
+    for attempt in range(1, max_attempts + 1):
+        result = subprocess.run(
+            ["gh", "api", f"repos/{repo}/contents/{file_path}"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            break
+        if attempt < max_attempts:
+            console.print(
+                f"  [yellow]File not yet available — waiting 10 seconds "
+                f"(attempt {attempt}/{max_attempts})...[/yellow]"
+            )
+            time.sleep(10)
+
+    if result.returncode != 0:
+        console.print(f"  [red]Failed to fetch {file_path}[/red]")
+        if result.stderr and result.stderr.strip():
+            console.print(Panel(result.stderr.strip(), title="Error", border_style="red"))
+        raise typer.Exit(code=1)
+
+    data = json.loads(result.stdout)
+    file_sha = data["sha"]
+    content = base64.b64decode(data["content"]).decode("utf-8")
+
+    # Perform replacement
+    new_content = content.replace(old_name, new_name)
+
+    if new_content == content:
+        console.print(f"  [yellow]Template name not found — skipping.[/yellow]")
+        return
+
+    # Push the updated file
+    new_content_b64 = base64.b64encode(new_content.encode("utf-8")).decode("ascii")
+    update_payload = json.dumps({
+        "message": f"Set project name to {new_name}",
+        "content": new_content_b64,
+        "sha": file_sha,
+    })
+
+    console.print(f"  [dim]Updating {file_path}...[/dim]")
+    result = subprocess.run(
+        [
+            "gh", "api",
+            f"repos/{repo}/contents/{file_path}",
+            "-X", "PUT",
+            "--input", "-",
+        ],
+        capture_output=True,
+        text=True,
+        input=update_payload,
+    )
+    if result.returncode != 0:
+        console.print(f"  [red]Failed to update {file_path}[/red]")
+        if result.stderr and result.stderr.strip():
+            console.print(Panel(result.stderr.strip(), title="Error", border_style="red"))
+        raise typer.Exit(code=1)
+
+    console.print(f"  [green]Done — {file_path} customized[/green]")
+
+
 def customize_quarto_config(
     gh_owner: str,
     gh_repo_name: str,
@@ -434,11 +525,18 @@ def setup_github(
         skip_if_exists=True,
     )
 
+    customize_pyproject(
+        gh_owner,
+        gh_repo_name,
+        step=step_offset + 4,
+        total=total,
+    )
+
     customize_quarto_config(
         gh_owner,
         gh_repo_name,
         country_name,
-        step=step_offset + 4,
+        step=step_offset + 5,
         total=total,
     )
 
@@ -477,10 +575,25 @@ def _setup_gcp_own(
     check = subprocess.run(
         ["gcloud", "projects", "describe", gcp_project_id, "--format=value(projectId)"],
         stdout=subprocess.PIPE,
-        stderr=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
         text=True,
     )
-    if check.returncode == 0 and check.stdout.strip() == gcp_project_id:
+    project_exists = check.returncode == 0 and check.stdout.strip() == gcp_project_id
+
+    if not project_exists and check.returncode != 0 and check.stderr:
+        stderr_lower = check.stderr.lower()
+        if "not found" not in stderr_lower and "not exist" not in stderr_lower:
+            console.print(
+                Panel(
+                    f"Could not verify whether project [bold]{gcp_project_id}[/bold] exists.\n\n"
+                    f"{check.stderr.strip()}\n\n"
+                    f"Fix the issue above and re-run, or continue to create a new project.",
+                    title="Warning",
+                    border_style="yellow",
+                )
+            )
+
+    if project_exists:
         # --- Existing project: show info, check permissions, confirm ------
         _step_header(step_offset + 1, total, "Use Existing GCP Project")
 
@@ -1051,7 +1164,7 @@ def main(
     AUTO_CONFIRM = yes
     if gh_owner is None:
         gh_owner = _get_gh_username()
-    github_steps = 4
+    github_steps = 5
     gcp_steps = 9
     secret_steps = 3
     total = github_steps + gcp_steps + secret_steps
