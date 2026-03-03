@@ -117,7 +117,7 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     curl -fsSL https://pixi.sh/install.sh | sh
     ```
 
-    The pixi install modifies your shell's startup script, so you need to re-execute it to update your current shell.
+    The pixi install modifies your shell's startup script, so after installing you need to re-execute the startup script to update your current shell.
 
     ```
     source ~/.bashrc
