@@ -141,15 +141,39 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     pixi shell
     ```
 
+1. **Authenticate for Earth Engine**
+
+    The assessment notebooks use Python libraries that access Google Earth Engine. These libraries require Application Default Credentials (ADC), which are separate from the `gcloud` CLI credentials used by the init script.
+
+    ```
+    gcloud auth application-default login
+    ```
+
+    This opens a browser sign-in flow and stores credentials that Python can use. You only need to do this once per machine (or once per Cloud Shell session).
+
 1. **Preview the website**
 
-    In the Cloud Shell terminal, run: 
+    <details>
+    <summary><strong>Local development</strong></summary>
 
     ```
-    quarto preview --port 8080 --host 0.0.0.0 --no-browser --render html
+    quarto preview
     ```
 
-    Edit files in your development environment. When you save the pages, the preview will update (but it may take a minute to do so, if using Cloud Shell).
+    This opens the site in your default browser and auto-reloads when you save changes.
+
+    </details>
+
+    <details open>
+    <summary><strong>GCP Cloud Shell development</strong></summary>
+
+    ```
+    quarto preview --port 8080 --host 0.0.0.0 --no-browser
+    ```
+
+    Use Cloud Shell's **Web Preview** (port 8080) to view the site. It may take a minute to update after saving changes.
+
+    </details>
 
 1. **Publish the website***
 

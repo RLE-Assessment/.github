@@ -1363,6 +1363,13 @@ def main(
         total=total,
     )
 
+    in_cloud_shell = os.environ.get("CLOUD_SHELL") == "true" or os.environ.get("DEVSHELL_PROJECT_ID")
+    quarto_cmd = (
+        "quarto preview --port 8080 --host 0.0.0.0 --no-browser"
+        if in_cloud_shell
+        else "quarto preview"
+    )
+
     console.print()
     console.print(
         Panel(
@@ -1371,8 +1378,9 @@ def main(
             f"  Local clone: {os.path.abspath(clone_path)}\n\n"
             f"  To preview the site:\n"
             f"    [bold]cd {os.path.abspath(clone_path)}[/bold]\n"
+            f"    [bold]gcloud auth application-default login[/bold]\n"
             f"    [bold]pixi shell[/bold]\n"
-            f"    [bold]quarto preview[/bold]",
+            f"    [bold]{quarto_cmd}[/bold]",
             title="Setup Complete",
             border_style="green",
         )
