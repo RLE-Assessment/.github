@@ -12,7 +12,7 @@ The intent of this content is to make it easier to build IUCN [Red List of Ecosy
 
 ## Create a new assessment repository
 
-Creating a new assessment report repository involves configuring a GitHub code repository (for content) and a Google Cloud Platform project (for data access and storage). An initialization script automates the full setup process: creating a GitHub repository from the template, provisioning a GCP project with Workload Identity Federation, and configuring GitHub secrets. The script displays each command it runs with a detailed explanation of what it does and why.
+Creating a new assessment report repository involves configuring a GitHub code repository (for content) and a Google Cloud Platform project (for data access and storage). An initialization script automates the full setup process: creating a GitHub repository from the template, provisioning a GCP project with Workload Identity Federation, configuring GitHub secrets, and cloning the repository locally. The script displays each command it runs with a detailed explanation of what it does and why.
 
 ### Open a Development Environment
 
@@ -42,6 +42,13 @@ Instructions are provided for either local development or in a GCP Cloud Shell d
 > ![Cloud Shell terminal](../images/cloud_shell_screenshot.png)
 >
 > The Google Cloud Shell has prerequisites ([GitHub CLI (`gh`)](https://cli.github.com), [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install), [uv](https://docs.astral.sh/uv/)) automatically installed.
+>
+> [pixi](https://pixi.sh) is not pre-installed in Cloud Shell. Install it before running the script:
+>
+> ```
+> curl -fsSL https://pixi.sh/install.sh | sh
+> source ~/.bashrc
+> ```
 
 </details>
 
@@ -75,15 +82,18 @@ Most options are prompted interactively if omitted. The `--gh-owner` option defa
 
 The script displays each command with an explanation before running it and asks for confirmation. Use `--yes` to skip the prompts.
 
-The script runs three phases:
+The script runs four phases:
 
 1. **GitHub Repository Setup** -- creates the repo from the template and configures GitHub Pages deployment
 2. **GCP Project Setup** -- creates (or reuses) a GCP project, enables APIs, sets up Workload Identity Federation for keyless authentication, and verifies Earth Engine registration
-3. **GitHub Secrets** -- stores the WIF provider and service account as repository secrets
+3. **GitHub Secrets** -- stores the WIF provider, service account, and project ID as repository secrets
+4. **Local Setup** -- clones the repository and installs packages
 
 The script is idempotent -- it skips resources that already exist, so it is safe to re-run if a step fails partway through.
 
 ## Edit the assessment report
+
+If you just ran the initialization script above, skip to step 4.
 
 1. **Open the repository files in an editor**
 
@@ -133,14 +143,6 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     cd ${GH_REPO_NAME}
     ```
 
-1. **Install packages**
-
-    Install packages in the development environment and open a shell containing those packages.
-
-    ```
-    pixi shell
-    ```
-
 1. **Authenticate for Earth Engine**
 
     The assessment notebooks use Python libraries that access Google Earth Engine. These libraries require Application Default Credentials (ADC), which are separate from the `gcloud` CLI credentials used by the init script.
@@ -150,6 +152,14 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     ```
 
     This opens a browser sign-in flow and stores credentials that Python can use. You only need to do this once per machine (or once per Cloud Shell session).
+
+1. **Install packages**
+
+    Install packages in the development environment and open a shell containing those packages.
+
+    ```
+    pixi shell
+    ```
 
 1. **Preview the website**
 
