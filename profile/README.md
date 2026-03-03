@@ -21,27 +21,29 @@ Instructions are provided for either local development or in a GCP Cloud Shell d
 <details>
 <summary><strong>Local development</strong></summary>
 
-Make sure additional prerequisites are installed:
-
-- [ ] [GitHub CLI (`gh`)](https://cli.github.com) installed and authenticated (`gh auth login`). This is used to create and configure GitHub repositories.
-- [ ] [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install) installed and authenticated (`gcloud auth login`). This is used to create and configure Google Cloud Platform projects.
-- [ ] [uv](https://docs.astral.sh/uv/) installed. This is used to run the initialization script (dependencies are resolved automatically).
-- [ ] [pixi](https://pixi.sh) installed. This is used to manage the project's development environment and dependencies.
-
-The script checks for these prerequisites and gives clear instructions if anything is missing.
+> [!TIP]
+> Make sure additional prerequisites are installed:
+>
+> - [ ] [GitHub CLI (`gh`)](https://cli.github.com) installed and authenticated (`gh auth login`). This is used to create and configure GitHub repositories.
+> - [ ] [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install) installed and authenticated (`gcloud auth login`). This is used to create and configure Google Cloud Platform projects.
+> - [ ] [uv](https://docs.astral.sh/uv/) installed. This is used to run the initialization script (dependencies are resolved automatically).
+> - [ ] [pixi](https://pixi.sh) installed. This is used to manage the project's development environment and dependencies.
+>
+> The script checks for these prerequisites and gives clear instructions if anything is missing.
 
 </details>
 
 <details>
 <summary><strong>GCP Cloud Shell development</strong></summary>
 
-In a browser, open a GCP Cloud Shell terminal by going to:
-
-https://shell.cloud.google.com/?show=terminal
-
-![Cloud Shell terminal](../images/cloud_shell_screenshot.png)
-
-The Google Cloud Shell has prerequisites ([GitHub CLI (`gh`)](https://cli.github.com), [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install), [uv](https://docs.astral.sh/uv/)) automatically installed.
+> [!NOTE]
+> In a browser, open a GCP Cloud Shell terminal by going to:
+>
+> https://shell.cloud.google.com/?show=terminal
+>
+> ![Cloud Shell terminal](../images/cloud_shell_screenshot.png)
+>
+> The Google Cloud Shell has prerequisites ([GitHub CLI (`gh`)](https://cli.github.com), [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install), [uv](https://docs.astral.sh/uv/)) automatically installed.
 
 </details>
 
@@ -90,22 +92,24 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     <details>
     <summary><strong>Local development</strong></summary>
 
-    ...
+    > [!TIP]
+    > The repository files can be edited with any text editor. Because there a large number of files, it may be helpful to use a full Integrated Development Environment (IDE) like [Visual Studio Code](https://code.visualstudio.com/) (VS Code).
 
     </details>
 
     <details open>
     <summary><strong>GCP Cloud Shell development</strong></summary>
 
-    In a browser, open a GCP Cloud Shell terminal by going to:
-
-    https://shell.cloud.google.com/?show=terminal
-
-    In the Cloud Shell terminal, enter
-
-    ```
-    cloudshell open-workspace .
-    ```
+    > [!NOTE]
+    > In a browser, open a GCP Cloud Shell terminal by going to:
+    >
+    > https://shell.cloud.google.com/?show=terminal
+    >
+    > In the Cloud Shell terminal, enter
+    >
+    > ```
+    > cloudshell open-workspace .
+    > ```
 
     </details>
 
@@ -156,25 +160,27 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     <details>
     <summary><strong>Local development</strong></summary>
 
-    ```
-    quarto preview
-    ```
-
-    This opens the site in your default browser and auto-reloads when you save changes.
+    > [!TIP]
+    > ```
+    > quarto preview
+    > ```
+    >
+    > This opens the site in your default browser and auto-reloads when you save changes.
 
     </details>
 
     <details open>
     <summary><strong>GCP Cloud Shell development</strong></summary>
 
-    ```
-    quarto preview --port 8080 --host 0.0.0.0 --no-browser
-    ```
-
-    Use Cloud Shell's **Web Preview** (port 8080) to view the site. It may take a minute to update after saving changes.
+    > [!NOTE]
+    > ```
+    > quarto preview --port 8080 --host 0.0.0.0 --no-browser
+    > ```
+    >
+    > Use Cloud Shell's **Web Preview** (port 8080) to view the site. It may take a minute to update after saving changes.
 
     </details>
 
-1. **Publish the website***
+1. **Publish the website**
 
     The website is automatically updated whenever you push committed changes to GitHub.
