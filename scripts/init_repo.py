@@ -263,6 +263,23 @@ def check_prerequisites(need_gh: bool = True, need_gcloud: bool = True, need_pix
                 raise typer.Exit(code=1)
             console.print("  [green]Google Cloud CLI authenticated[/green]")
         else:
+            # Verify tokens are still valid (auth list reads local config
+            # and succeeds even with expired tokens)
+            token = subprocess.run(
+                ["gcloud", "auth", "print-access-token"],
+                capture_output=True,
+                text=True,
+            )
+            if token.returncode != 0:
+                console.print(
+                    Panel(
+                        "[bold red]Google Cloud auth tokens have expired.[/bold red]\n\n"
+                        "Run the following command to refresh your credentials:\n\n"
+                        "  [bold]gcloud auth login[/bold]",
+                        title="Reauthentication required",
+                    )
+                )
+                raise typer.Exit(code=1)
             console.print(
                 f"  [green]Google Cloud CLI authenticated as {acct.stdout.strip()}[/green]"
             )
@@ -1374,9 +1391,9 @@ def main(
 
     in_cloud_shell = os.environ.get("CLOUD_SHELL") == "true" or os.environ.get("DEVSHELL_PROJECT_ID")
     quarto_cmd = (
-        "quarto preview --port 8080 --host 0.0.0.0 --no-browser"
+        "pixi run quarto preview --port 8080 --host 0.0.0.0 --no-browser"
         if in_cloud_shell
-        else "quarto preview"
+        else "pixi run quarto preview"
     )
 
     console.print()
@@ -1388,7 +1405,6 @@ def main(
             f"  To preview the site:\n"
             f"    [bold]cd {os.path.abspath(clone_path)}[/bold]\n"
             f"    [bold]gcloud auth application-default login[/bold]\n"
-            f"    [bold]pixi shell[/bold]\n"
             f"    [bold]{quarto_cmd}[/bold]",
             title="Setup Complete",
             border_style="green",
