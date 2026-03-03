@@ -302,24 +302,28 @@ def _get_gh_username() -> str:
 def customize_pyproject(
     gh_owner: str,
     gh_repo_name: str,
+    gcp_project_id: str,
     step: int,
     total: int,
 ) -> None:
-    """Replace the template project name in pyproject.toml with the repo name."""
+    """Replace template placeholders in pyproject.toml with actual values."""
     _step_header(step, total, "Customize pyproject.toml")
     _describe(
         "updates the pyproject.toml file in the new repository, "
-        "replacing the template project name with the repository name."
+        "replacing the template project name and GCP project ID placeholder."
     )
 
     repo = f"{gh_owner}/{gh_repo_name}"
     file_path = "pyproject.toml"
 
-    old_name = "TEMPLATE-rle-assessment"
-    new_name = gh_repo_name
+    replacements = {
+        "TEMPLATE-rle-assessment": gh_repo_name,
+        "PLACEHOLDER_GCP_PROJECT_ID": gcp_project_id,
+    }
 
-    console.print(f"  Replacement:")
-    console.print(f"    name = \"{old_name}\"  →  name = \"{new_name}\"")
+    console.print(f"  Replacements:")
+    for old, new in replacements.items():
+        console.print(f"    {old}  →  {new}")
 
     if not AUTO_CONFIRM:
         if not typer.confirm("\n  Apply this change?", default=True):
@@ -354,17 +358,19 @@ def customize_pyproject(
     file_sha = data["sha"]
     content = base64.b64decode(data["content"]).decode("utf-8")
 
-    # Perform replacement
-    new_content = content.replace(old_name, new_name)
+    # Perform replacements
+    new_content = content
+    for old, new in replacements.items():
+        new_content = new_content.replace(old, new)
 
     if new_content == content:
-        console.print(f"  [yellow]Template name not found — skipping.[/yellow]")
+        console.print(f"  [yellow]No placeholders found — skipping.[/yellow]")
         return
 
     # Push the updated file
     new_content_b64 = base64.b64encode(new_content.encode("utf-8")).decode("ascii")
     update_payload = json.dumps({
-        "message": f"Set project name to {new_name}",
+        "message": f"Configure {gh_repo_name} for {gcp_project_id}",
         "content": new_content_b64,
         "sha": file_sha,
     })
@@ -492,6 +498,7 @@ def setup_github(
     gh_owner: str,
     gh_repo_name: str,
     country_name: str,
+    gcp_project_id: str,
     step_offset: int,
     total: int,
 ) -> None:
@@ -574,6 +581,7 @@ def setup_github(
     customize_pyproject(
         gh_owner,
         gh_repo_name,
+        gcp_project_id,
         step=step_offset + 4,
         total=total,
     )
@@ -1288,6 +1296,7 @@ def main(
         gh_owner,
         gh_repo_name,
         country_name,
+        gcp_project_id,
         step_offset=0,
         total=total,
     )
