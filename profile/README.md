@@ -21,7 +21,6 @@ Instructions are provided for either local development or in a GCP Cloud Shell d
 <details>
 <summary><strong>Local development</strong></summary>
 
-> [!TIP]
 > Make sure additional prerequisites are installed:
 >
 > - [ ] [GitHub CLI (`gh`)](https://cli.github.com) installed and authenticated (`gh auth login`). This is used to create and configure GitHub repositories.
@@ -36,7 +35,6 @@ Instructions are provided for either local development or in a GCP Cloud Shell d
 <details>
 <summary><strong>GCP Cloud Shell development</strong></summary>
 
-> [!NOTE]
 > In a browser, open a GCP Cloud Shell terminal by going to:
 >
 > https://shell.cloud.google.com/?show=terminal
@@ -92,7 +90,6 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     <details>
     <summary><strong>Local development</strong></summary>
 
-    > [!TIP]
     > The repository files can be edited with any text editor. Because there a large number of files, it may be helpful to use a full Integrated Development Environment (IDE) like [Visual Studio Code](https://code.visualstudio.com/) (VS Code).
 
     </details>
@@ -100,7 +97,6 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     <details open>
     <summary><strong>GCP Cloud Shell development</strong></summary>
 
-    > [!NOTE]
     > In a browser, open a GCP Cloud Shell terminal by going to:
     >
     > https://shell.cloud.google.com/?show=terminal
@@ -160,7 +156,6 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     <details>
     <summary><strong>Local development</strong></summary>
 
-    > [!TIP]
     > ```
     > quarto preview
     > ```
@@ -172,7 +167,6 @@ The script is idempotent -- it skips resources that already exist, so it is safe
     <details open>
     <summary><strong>GCP Cloud Shell development</strong></summary>
 
-    > [!NOTE]
     > ```
     > quarto preview --port 8080 --host 0.0.0.0 --no-browser
     > ```
