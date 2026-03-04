@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:www.semanticscholar.org)",
+      "WebFetch(domain:seea.un.org)",
+      "WebFetch(domain:portals.iucn.org)",
+      "WebFetch(domain:www.murrayensis.org)",
+      "WebFetch(domain:doi.org)",
+      "WebFetch(domain:figshare.com)"
+    ]
+  }
+}
