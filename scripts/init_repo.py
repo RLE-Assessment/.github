@@ -1361,16 +1361,8 @@ def main(
         )
 
     # Re-trigger the deploy workflow now that the environment, secrets,
-    # and gate variable are fully configured.  Wait for IAM changes to
-    # propagate first — without this the service account may not yet have
-    # the serviceUsageConsumer role when Earth Engine is initialized.
+    # and gate variable are fully configured.
     console.print(Rule("[bold blue]Trigger Deploy Workflow"))
-    _iam_propagation_wait = 120  # seconds
-    console.print(
-        f"  [dim]Waiting {_iam_propagation_wait}s for IAM changes to propagate...[/dim]"
-    )
-    time.sleep(_iam_propagation_wait)
-
     trigger_cmd = [
         "gh",
         "workflow",
