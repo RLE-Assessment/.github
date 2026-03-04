@@ -432,7 +432,7 @@ def customize_quarto_config(
     today = date.today()
 
     replacements = {
-        "PLACEHOLDER_COUNTRY_NAME": country_name,
+        "Ruritania": country_name,
         "year: 2000": f"year: {today.year}",
         'date: "2000-01-01"': f'date: "{today.isoformat()}"',
     }
