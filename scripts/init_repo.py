@@ -323,94 +323,98 @@ def customize_pyproject(
     step: int,
     total: int,
 ) -> None:
-    """Replace template placeholders in pyproject.toml with actual values."""
-    _step_header(step, total, "Customize pyproject.toml")
+    """Replace template placeholders in pyproject.toml and config files."""
+    _step_header(step, total, "Customize project config")
     _describe(
-        "updates the pyproject.toml file in the new repository, "
-        "replacing the template project name and GCP project ID placeholder."
+        "updates pyproject.toml and config/country_config.yaml in the new "
+        "repository, replacing the template project name and GCP project ID "
+        "placeholder."
     )
 
     repo = f"{gh_owner}/{gh_repo_name}"
-    file_path = "pyproject.toml"
 
     replacements = {
         "TEMPLATE-rle-assessment": gh_repo_name,
         "PLACEHOLDER_GCP_PROJECT_ID": gcp_project_id,
     }
 
+    file_paths = ["pyproject.toml", "config/country_config.yaml"]
+
     console.print(f"  Replacements:")
     for old, new in replacements.items():
         console.print(f"    {old}  →  {new}")
+    console.print(f"  Files: {', '.join(file_paths)}")
 
     if not AUTO_CONFIRM:
         if not typer.confirm("\n  Apply this change?", default=True):
             console.print("  [dim]Skipped.[/dim]")
             raise typer.Exit(code=0)
 
-    # Fetch the file via GitHub API (with retries for template propagation)
-    console.print(f"  [dim]Fetching {file_path}...[/dim]")
-    max_attempts = 6
-    for attempt in range(1, max_attempts + 1):
+    for file_path in file_paths:
+        # Fetch the file via GitHub API (with retries for template propagation)
+        console.print(f"  [dim]Fetching {file_path}...[/dim]")
+        max_attempts = 6
+        for attempt in range(1, max_attempts + 1):
+            result = subprocess.run(
+                ["gh", "api", f"repos/{repo}/contents/{file_path}"],
+                capture_output=True,
+                text=True,
+            )
+            if result.returncode == 0:
+                break
+            if attempt < max_attempts:
+                console.print(
+                    f"  [yellow]File not yet available — waiting 10 seconds "
+                    f"(attempt {attempt}/{max_attempts})...[/yellow]"
+                )
+                time.sleep(10)
+
+        if result.returncode != 0:
+            console.print(f"  [red]Failed to fetch {file_path}[/red]")
+            if result.stderr and result.stderr.strip():
+                console.print(Panel(result.stderr.strip(), title="Error", border_style="red"))
+            raise typer.Exit(code=1)
+
+        data = json.loads(result.stdout)
+        file_sha = data["sha"]
+        content = base64.b64decode(data["content"]).decode("utf-8")
+
+        # Perform replacements
+        new_content = content
+        for old, new in replacements.items():
+            new_content = new_content.replace(old, new)
+
+        if new_content == content:
+            console.print(f"  [yellow]No placeholders found in {file_path} — skipping.[/yellow]")
+            continue
+
+        # Push the updated file
+        new_content_b64 = base64.b64encode(new_content.encode("utf-8")).decode("ascii")
+        update_payload = json.dumps({
+            "message": f"Configure {gh_repo_name} for {gcp_project_id}",
+            "content": new_content_b64,
+            "sha": file_sha,
+        })
+
+        console.print(f"  [dim]Updating {file_path}...[/dim]")
         result = subprocess.run(
-            ["gh", "api", f"repos/{repo}/contents/{file_path}"],
+            [
+                "gh", "api",
+                f"repos/{repo}/contents/{file_path}",
+                "-X", "PUT",
+                "--input", "-",
+            ],
             capture_output=True,
             text=True,
+            input=update_payload,
         )
-        if result.returncode == 0:
-            break
-        if attempt < max_attempts:
-            console.print(
-                f"  [yellow]File not yet available — waiting 10 seconds "
-                f"(attempt {attempt}/{max_attempts})...[/yellow]"
-            )
-            time.sleep(10)
+        if result.returncode != 0:
+            console.print(f"  [red]Failed to update {file_path}[/red]")
+            if result.stderr and result.stderr.strip():
+                console.print(Panel(result.stderr.strip(), title="Error", border_style="red"))
+            raise typer.Exit(code=1)
 
-    if result.returncode != 0:
-        console.print(f"  [red]Failed to fetch {file_path}[/red]")
-        if result.stderr and result.stderr.strip():
-            console.print(Panel(result.stderr.strip(), title="Error", border_style="red"))
-        raise typer.Exit(code=1)
-
-    data = json.loads(result.stdout)
-    file_sha = data["sha"]
-    content = base64.b64decode(data["content"]).decode("utf-8")
-
-    # Perform replacements
-    new_content = content
-    for old, new in replacements.items():
-        new_content = new_content.replace(old, new)
-
-    if new_content == content:
-        console.print(f"  [yellow]No placeholders found — skipping.[/yellow]")
-        return
-
-    # Push the updated file
-    new_content_b64 = base64.b64encode(new_content.encode("utf-8")).decode("ascii")
-    update_payload = json.dumps({
-        "message": f"Configure {gh_repo_name} for {gcp_project_id}",
-        "content": new_content_b64,
-        "sha": file_sha,
-    })
-
-    console.print(f"  [dim]Updating {file_path}...[/dim]")
-    result = subprocess.run(
-        [
-            "gh", "api",
-            f"repos/{repo}/contents/{file_path}",
-            "-X", "PUT",
-            "--input", "-",
-        ],
-        capture_output=True,
-        text=True,
-        input=update_payload,
-    )
-    if result.returncode != 0:
-        console.print(f"  [red]Failed to update {file_path}[/red]")
-        if result.stderr and result.stderr.strip():
-            console.print(Panel(result.stderr.strip(), title="Error", border_style="red"))
-        raise typer.Exit(code=1)
-
-    console.print(f"  [green]Done — {file_path} customized[/green]")
+        console.print(f"  [green]Done — {file_path} customized[/green]")
 
 
 def customize_quarto_config(
