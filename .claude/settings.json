@@ -6,7 +6,9 @@
       "WebFetch(domain:portals.iucn.org)",
       "WebFetch(domain:www.murrayensis.org)",
       "WebFetch(domain:doi.org)",
-      "WebFetch(domain:figshare.com)"
+      "WebFetch(domain:figshare.com)",
+      "WebFetch(domain:pypi.org)",
+      "Bash(pixi list)"
     ]
   }
 }
