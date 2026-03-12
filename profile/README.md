@@ -2,6 +2,27 @@
 
 The intent of this content is to make it easier to build IUCN [Red List of Ecosystems](https://iucnrle.org/) assessment reports following the [Global Ecosystem Typology](https://global-ecosystems.org/) classification framework. This workflow creates a website and PDF document with standard RLE calculations that can be future customized.
 
+```mermaid
+flowchart LR
+    subgraph libraries
+        G(["`Global Ecosystem Typology<br/>***iucn-get-data***`"])
+        I(["`IUCN Red List of Ecosystems<br/>***rle-python-gee***`"])
+    end
+    subgraph config
+        CC([Country config])
+    end
+    subgraph template
+        T(["`Template Repository<br/>***TEMPLATE-rle-assessment***`"])
+    end
+    CR([IUCN Assessment Report GitHub Repository for a Country])
+    W([Assessment Report Website])
+    CC --> CR
+    T --> CR
+    G --> CR
+    I --> CR
+    CR --> W
+```
+
 ## Prerequisites
 
 - [ ] A [Google Cloud Project (GCP)](https://console.cloud.google.com) account
