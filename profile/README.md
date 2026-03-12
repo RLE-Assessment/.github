@@ -62,9 +62,9 @@ Instructions are provided for either local development or in a GCP Cloud Shell d
 >
 > ![Cloud Shell terminal](../images/cloud_shell_screenshot.png)
 >
-> The Google Cloud Shell has prerequisites ([GitHub CLI (`gh`)](https://cli.github.com), [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install), [uv](https://docs.astral.sh/uv/)) automatically installed.
+> The Google Cloud Shell has several of the prerequisites ([GitHub CLI (`gh`)](https://cli.github.com), [Google Cloud CLI (`gcloud`)](https://cloud.google.com/sdk/docs/install), [uv](https://docs.astral.sh/uv/)) automatically installed.
 >
-> [pixi](https://pixi.sh) is not pre-installed in Cloud Shell. Install it before running the script:
+> However, the package manager [pixi](https://pixi.sh) is not pre-installed in Cloud Shell. Install it by running the script:
 >
 > ```
 > curl -fsSL https://pixi.sh/install.sh | sh
