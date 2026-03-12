@@ -1,1 +1,4 @@
 *.pyc
+*.min.js
+profile/README.html
+profile/README_files/*
