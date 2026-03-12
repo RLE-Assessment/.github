@@ -70,6 +70,17 @@ Instructions are provided for either local development or in a GCP Cloud Shell d
 > curl -fsSL https://pixi.sh/install.sh | sh
 > source ~/.bashrc
 > ```
+>
+> **Note:** Cloud Shell has limited storage (~5 GB). If you encounter
+> "No space left on device" errors during package installation, free up
+> space by clearing caches:
+>
+> ```
+> rm -rf ~/.cache/rattler/cache/ ~/.cache/pip/
+> ```
+>
+> You can also check what's using space with `du -sh ~/* | sort -hr | head -10`
+> and remove any unnecessary project directories.
 
 </details>
 

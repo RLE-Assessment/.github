@@ -1233,6 +1233,28 @@ def setup_local(
             "local machine so you can edit and preview the assessment report.",
         )
 
+    in_cloud_shell = (
+        os.environ.get("CLOUD_SHELL") == "true"
+        or os.environ.get("DEVSHELL_PROJECT_ID")
+    )
+    if in_cloud_shell:
+        free_gb = shutil.disk_usage(os.path.expanduser("~")).free / (1024**3)
+        if free_gb < 1.5:
+            console.print(
+                Panel(
+                    f"[bold yellow]Low disk space: {free_gb:.1f} GB free[/bold yellow]\n\n"
+                    "  Cloud Shell has limited storage (~5 GB). The package install\n"
+                    "  requires approximately 1.5 GB of free space.\n\n"
+                    "  To free space, run:\n"
+                    "    [bold]rm -rf ~/.cache/rattler/cache/ ~/.cache/pip/[/bold]\n\n"
+                    "  Then check for unnecessary project directories:\n"
+                    "    [bold]du -sh ~/* | sort -hr | head -10[/bold]",
+                    title="Low Disk Space",
+                    border_style="yellow",
+                )
+            )
+            raise typer.Exit(1)
+
     run_command(
         ["pixi", "install"],
         step=step_offset + 2,
@@ -1242,6 +1264,12 @@ def setup_local(
         "Jupyter, and geospatial libraries) into an isolated pixi environment.",
         cwd=clone_path,
     )
+
+    if in_cloud_shell:
+        cache_dir = os.path.expanduser("~/.cache/rattler/cache")
+        if os.path.isdir(cache_dir):
+            shutil.rmtree(cache_dir)
+            console.print("  [dim]Cleared package cache to save disk space.[/dim]")
 
     return clone_path
 
