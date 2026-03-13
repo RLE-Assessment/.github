@@ -97,7 +97,7 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
   --gcp-project-id rle-ruritania \
   --gcp-project-name "RLE Ruritania" \
   --gh-repo-name rle-ruritania \
-  --ecosystem-gee-asset-id projects/rle-ruritania/assets/ruritania_ecosystems \
+  --ecosystem-gee-asset-id projects/goog-rle-assessments/assets/ruritania/ruritania_ecosystems \
   --project-dir projects
 ```
 
