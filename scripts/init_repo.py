@@ -1423,6 +1423,27 @@ def main(
     check_disk_space()
     check_prerequisites(need_gh=True, need_gcloud=True, need_pixi=True)
 
+    # Check if project_dir is inside an existing git repository
+    abs_project_dir = os.path.abspath(project_dir)
+    check_dir = abs_project_dir
+    while check_dir != os.path.dirname(check_dir):  # stop at filesystem root
+        if os.path.isdir(os.path.join(check_dir, ".git")):
+            console.print(
+                Panel(
+                    f"[bold red]Project directory is inside an existing git repository.[/bold red]\n\n"
+                    f"  Project dir: {abs_project_dir}\n"
+                    f"  Git repo:    {check_dir}\n\n"
+                    "Cloning a new repository inside an existing one wastes disk space\n"
+                    "and causes confusion. Consider removing the old repository first:\n\n"
+                    f"  [bold]rm -rf {check_dir}[/bold]\n\n"
+                    "Then re-run this script from your home directory:\n\n"
+                    "  [bold]cd ~[/bold]",
+                    title="Nested git repository",
+                )
+            )
+            raise typer.Exit(code=1)
+        check_dir = os.path.dirname(check_dir)
+
     if gh_owner is None:
         gh_owner = _get_gh_username()
     github_steps = 5
