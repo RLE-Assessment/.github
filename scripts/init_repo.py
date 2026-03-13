@@ -31,11 +31,75 @@ console = Console()
 SA_NAME = "github-actions"
 TEMPLATE_REPO = "RLE-Assessment/TEMPLATE-rle-assessment"
 AUTO_CONFIRM = False
+MIN_DISK_GB = 3
 
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def check_disk_space() -> None:
+    """Check that enough disk space is available (>= MIN_DISK_GB).
+
+    If space is low, scans the home directory for git repositories that may
+    be consuming disk and suggests removing them.
+    """
+    home = os.path.expanduser("~")
+    usage = shutil.disk_usage(home)
+    avail_gb = usage.free / (1024**3)
+
+    if avail_gb >= MIN_DISK_GB:
+        console.print(f"  [green]Disk space OK ({avail_gb:.1f} GB available)[/green]")
+        return
+
+    # Find git repos in the home directory (depth-limited to 2 levels)
+    git_repos: list[tuple[str, str]] = []
+    for entry in os.scandir(home):
+        if not entry.is_dir(follow_symlinks=False):
+            continue
+        # Check if top-level dir is itself a repo
+        if os.path.isdir(os.path.join(entry.path, ".git")):
+            size = subprocess.run(
+                ["du", "-sh", entry.path],
+                capture_output=True, text=True,
+            )
+            size_str = size.stdout.split()[0] if size.returncode == 0 else "?"
+            git_repos.append((entry.path, size_str))
+        else:
+            # Check one level deeper
+            try:
+                for sub in os.scandir(entry.path):
+                    if sub.is_dir(follow_symlinks=False) and os.path.isdir(
+                        os.path.join(sub.path, ".git")
+                    ):
+                        size = subprocess.run(
+                            ["du", "-sh", sub.path],
+                            capture_output=True, text=True,
+                        )
+                        size_str = size.stdout.split()[0] if size.returncode == 0 else "?"
+                        git_repos.append((sub.path, size_str))
+            except PermissionError:
+                continue
+
+    msg = (
+        f"[bold red]Low disk space: {avail_gb:.1f} GB available "
+        f"(need at least {MIN_DISK_GB} GB).[/bold red]\n"
+    )
+
+    if git_repos:
+        msg += "\nThe following git repositories were found in your home directory:\n"
+        for path, size in git_repos:
+            msg += f"\n  [bold]{size}[/bold]  {path}"
+        msg += (
+            "\n\nConsider removing unneeded repositories to free up space, e.g.:\n"
+            f"  [bold]rm -rf {git_repos[0][0]}[/bold]"
+        )
+    else:
+        msg += "\nFree up disk space and try again."
+
+    console.print(Panel(msg, title="Insufficient disk space"))
+    raise typer.Exit(code=1)
 
 
 def _step_header(step: int, total: int, title: str) -> None:
@@ -339,7 +403,7 @@ def customize_pyproject(
         "PLACEHOLDER_GCP_PROJECT_ID": gcp_project_id,
     }
     if ecosystem_gee_asset_id is not None:
-        replacements["projects/goog-rle-assessments/assets/ruritania/null_island_ecosystems"] = ecosystem_gee_asset_id
+        replacements["projects/goog-rle-assessments/assets/ruritania/ruritania_ecosystems"] = ecosystem_gee_asset_id
 
     file_paths = ["pyproject.toml", "config/country_config.yaml", "docs/GCP_SETUP.md"]
 
@@ -1347,6 +1411,7 @@ def main(
     global AUTO_CONFIRM
     AUTO_CONFIRM = yes
 
+    check_disk_space()
     check_prerequisites(need_gh=True, need_gcloud=True, need_pixi=True)
 
     if gh_owner is None:
