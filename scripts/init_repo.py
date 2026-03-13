@@ -339,7 +339,7 @@ def customize_pyproject(
         "PLACEHOLDER_GCP_PROJECT_ID": gcp_project_id,
     }
     if ecosystem_gee_asset_id is not None:
-        replacements["projects/PLACEHOLDER_GCP_PROJECT_ID/assets/ruritania/null_island_ecosystems"] = ecosystem_gee_asset_id
+        replacements["projects/goog-rle-assessments/assets/ruritania/null_island_ecosystems"] = ecosystem_gee_asset_id
 
     file_paths = ["pyproject.toml", "config/country_config.yaml", "docs/GCP_SETUP.md"]
 
