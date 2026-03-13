@@ -97,6 +97,7 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
   --gcp-project-id rle-ruritania \
   --gcp-project-name "RLE Ruritania" \
   --gh-repo-name rle-ruritania \
+  --ecosystem-gee-asset-id projects/rle-ruritania/assets/ruritania_ecosystems \
   --project-dir projects
 ```
 
@@ -107,6 +108,7 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
 | `--gcp-project-name` | *(Optional)* Display name for the GCP project (only needed when creating a new project; prompted if omitted) |
 | `--gh-repo-name` | Name for the new GitHub repository |
 | `--gh-owner` | *(Optional)* GitHub username or organization. Defaults to the authenticated user. |
+| `--ecosystem-gee-asset-id` | *(Optional)* Earth Engine asset ID for the ecosystem map. Defaults to the template placeholder. |
 | `--project-dir` | Directory in which to clone the repository (use `.` for current directory) |
 | `--yes` / `-y` | *(Optional)* Skip confirmation prompts (useful for non-interactive use) |
 

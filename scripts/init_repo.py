@@ -322,6 +322,7 @@ def customize_pyproject(
     gcp_project_id: str,
     step: int,
     total: int,
+    ecosystem_gee_asset_id: str | None = None,
 ) -> None:
     """Replace template placeholders in pyproject.toml and config files."""
     _step_header(step, total, "Customize project config")
@@ -337,6 +338,8 @@ def customize_pyproject(
         "TEMPLATE-rle-assessment": gh_repo_name,
         "PLACEHOLDER_GCP_PROJECT_ID": gcp_project_id,
     }
+    if ecosystem_gee_asset_id is not None:
+        replacements["projects/goog-rle-assessments/assets/ruritania/null_island_ecosystems"] = ecosystem_gee_asset_id
 
     file_paths = ["pyproject.toml", "config/country_config.yaml"]
 
@@ -522,6 +525,7 @@ def setup_github(
     gcp_project_id: str,
     step_offset: int,
     total: int,
+    ecosystem_gee_asset_id: str | None = None,
 ) -> None:
     """Create the GitHub repository and configure GitHub Pages deployment."""
 
@@ -605,6 +609,7 @@ def setup_github(
         gcp_project_id,
         step=step_offset + 4,
         total=total,
+        ecosystem_gee_asset_id=ecosystem_gee_asset_id,
     )
 
     customize_quarto_config(
@@ -1307,6 +1312,10 @@ def main(
         prompt="Project directory (where to clone the repository)",
         help="Directory in which to clone the repository.",
     ),
+    ecosystem_gee_asset_id: str | None = typer.Option(
+        None,
+        help="Earth Engine asset ID for the ecosystem map (e.g. projects/my-project/assets/my-ecosystems).",
+    ),
     yes: bool = typer.Option(False, "--yes", "-y", help="Skip confirmation prompts."),
 ) -> None:
     """Initialize a new RLE assessment repository.
@@ -1336,6 +1345,8 @@ def main(
     )
     if gcp_project_name is not None:
         summary += f"  GCP name:    {gcp_project_name}\n"
+    if ecosystem_gee_asset_id is not None:
+        summary += f"  GEE asset:   {ecosystem_gee_asset_id}\n"
     summary += f"  Project dir: {os.path.abspath(project_dir)}\n"
     summary += f"  Total steps: {total}"
     console.print(Panel(summary, title="RLE Assessment Init", border_style="blue"))
@@ -1348,6 +1359,7 @@ def main(
         gcp_project_id,
         step_offset=0,
         total=total,
+        ecosystem_gee_asset_id=ecosystem_gee_asset_id,
     )
 
     console.print(Rule("[bold blue]Phase 2: GCP Project Setup"))
