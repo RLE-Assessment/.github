@@ -1230,7 +1230,8 @@ def setup_local(
         )
     else:
         run_command(
-            ["gh", "repo", "clone", f"{gh_owner}/{gh_repo_name}", clone_path],
+            ["gh", "repo", "clone", f"{gh_owner}/{gh_repo_name}", clone_path,
+             "--", "--depth", "1"],
             step=step_offset + 1,
             total=total,
             title="Clone Repository",
@@ -1243,6 +1244,16 @@ def setup_local(
         or os.environ.get("DEVSHELL_PROJECT_ID")
     )
     if in_cloud_shell:
+        # Proactively clear caches to maximize available space for install.
+        for cache_path in [
+            "~/.cache/rattler/cache",
+            "~/.cache/pip",
+        ]:
+            full = os.path.expanduser(cache_path)
+            if os.path.isdir(full):
+                shutil.rmtree(full)
+                console.print(f"  [dim]Cleared {cache_path} to free disk space.[/dim]")
+
         free_gb = shutil.disk_usage(os.path.expanduser("~")).free / (1024**3)
         if free_gb < 1.5:
             console.print(
@@ -1250,15 +1261,19 @@ def setup_local(
                     f"[bold yellow]Low disk space: {free_gb:.1f} GB free[/bold yellow]\n\n"
                     "  Cloud Shell has limited storage (~5 GB). The package install\n"
                     "  requires approximately 1.5 GB of free space.\n\n"
-                    "  To free space, run:\n"
-                    "    [bold]rm -rf ~/.cache/rattler/cache/ ~/.cache/pip/[/bold]\n\n"
-                    "  Then check for unnecessary project directories:\n"
+                    "  Check for unnecessary files or directories:\n"
                     "    [bold]du -sh ~/* | sort -hr | head -10[/bold]",
                     title="Low Disk Space",
                     border_style="yellow",
                 )
             )
             raise typer.Exit(1)
+
+    # On Cloud Shell, redirect the rattler package cache to /tmp so it
+    # doesn't consume the limited home-directory storage during install.
+    old_cache_dir = os.environ.get("RATTLER_CACHE_DIR")
+    if in_cloud_shell:
+        os.environ["RATTLER_CACHE_DIR"] = "/tmp/rattler-cache"
 
     run_command(
         ["pixi", "install"],
@@ -1271,10 +1286,15 @@ def setup_local(
     )
 
     if in_cloud_shell:
-        cache_dir = os.path.expanduser("~/.cache/rattler/cache")
-        if os.path.isdir(cache_dir):
-            shutil.rmtree(cache_dir)
-            console.print("  [dim]Cleared package cache to save disk space.[/dim]")
+        # Restore original env and clean up the temporary cache.
+        if old_cache_dir is None:
+            os.environ.pop("RATTLER_CACHE_DIR", None)
+        else:
+            os.environ["RATTLER_CACHE_DIR"] = old_cache_dir
+        for cache_path in ["/tmp/rattler-cache", os.path.expanduser("~/.cache/rattler/cache")]:
+            if os.path.isdir(cache_path):
+                shutil.rmtree(cache_path)
+        console.print("  [dim]Cleared package cache to save disk space.[/dim]")
 
     return clone_path
 
