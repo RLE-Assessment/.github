@@ -39,6 +39,15 @@ MIN_DISK_GB = 3
 # ---------------------------------------------------------------------------
 
 
+def _fmt_bytes(n: int) -> str:
+    """Human-readable size string (e.g. '2.1 GB', '384 MB')."""
+    if n >= 1024**3:
+        return f"{n / 1024**3:.1f} GB"
+    if n >= 1024**2:
+        return f"{n / 1024**2:.0f} MB"
+    return f"{n / 1024:.0f} KB"
+
+
 def check_disk_space() -> None:
     """Check that enough disk space is available (>= MIN_DISK_GB).
 
@@ -50,7 +59,7 @@ def check_disk_space() -> None:
     avail_gb = usage.free / (1024**3)
 
     if avail_gb >= MIN_DISK_GB:
-        console.print(f"  [green]Disk space OK ({avail_gb:.1f} GB available)[/green]")
+        console.print(f"  [green]Disk space OK ({_fmt_bytes(usage.free)} available)[/green]")
         return
 
     # Find git repos in the home directory (depth-limited to 2 levels)
@@ -83,7 +92,7 @@ def check_disk_space() -> None:
                 continue
 
     msg = (
-        f"[bold red]Low disk space: {avail_gb:.1f} GB available "
+        f"[bold red]Low disk space: {_fmt_bytes(usage.free)} available "
         f"(need at least {MIN_DISK_GB} GB).[/bold red]\n"
     )
 
