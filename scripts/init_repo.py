@@ -665,8 +665,11 @@ def setup_github(
     if check.returncode == 0:
         _step_header(step_offset + 1, total, "Create GitHub Repository")
         console.print(
-            f"\n  [yellow]Repository {repo_full} already exists — skipping creation.[/yellow]\n"
+            f"\n  [red]Repository {repo_full} already exists.[/red]\n"
+            f"\n  To delete it and start over, run:\n"
+            f"\n    gh repo delete {repo_full} --yes\n"
         )
+        raise typer.Exit(code=1)
     else:
         run_command(
             [
