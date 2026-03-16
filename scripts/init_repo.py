@@ -10,7 +10,7 @@ Usage:
 
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["typer>=0.20", "rich>=13"]
+# dependencies = ["typer>=0.20", "rich>=13", "geopy>=2"]
 # ///
 
 import base64
@@ -389,10 +389,57 @@ def _get_gh_username() -> str:
 # ---------------------------------------------------------------------------
 
 
+def geocode_country(country_name: str) -> tuple[float, float, int]:
+    """Estimate latitude, longitude, and zoom level for a country."""
+    from geopy.geocoders import Nominatim
+
+    try:
+        geolocator = Nominatim(user_agent="rle-assessment-init")
+        location = geolocator.geocode(country_name, exactly_one=True)
+        if location is None:
+            console.print(
+                f"  [yellow]Warning: Could not geocode '{country_name}', "
+                f"using defaults[/yellow]"
+            )
+            return (0.0, 0.0, 4)
+        lat = round(location.latitude, 2)
+        lon = round(location.longitude, 2)
+        bbox = location.raw.get("boundingbox")  # [south, north, west, east]
+        if bbox:
+            lat_extent = abs(float(bbox[1]) - float(bbox[0]))
+            lon_extent = abs(float(bbox[3]) - float(bbox[2]))
+            extent = max(lat_extent, lon_extent)
+            if extent > 50:
+                zoom = 3
+            elif extent > 30:
+                zoom = 4
+            elif extent > 15:
+                zoom = 5
+            elif extent > 8:
+                zoom = 6
+            elif extent > 4:
+                zoom = 7
+            elif extent > 2:
+                zoom = 8
+            elif extent > 1:
+                zoom = 9
+            else:
+                zoom = 10
+        else:
+            zoom = 5
+        return (lat, lon, zoom)
+    except Exception as e:
+        console.print(
+            f"  [yellow]Warning: Geocoding failed: {e}, using defaults[/yellow]"
+        )
+        return (0.0, 0.0, 4)
+
+
 def customize_pyproject(
     gh_owner: str,
     gh_repo_name: str,
     gcp_project_id: str,
+    country_name: str,
     step: int,
     total: int,
     ecosystem_gee_asset_id: str | None = None,
@@ -413,6 +460,11 @@ def customize_pyproject(
     }
     if ecosystem_gee_asset_id is not None:
         replacements["projects/goog-rle-assessments/assets/ruritania/ruritania_ecosystems"] = ecosystem_gee_asset_id
+
+    lat, lon, zoom = geocode_country(country_name)
+    replacements["  latitude: 0.0"] = f"  latitude: {lat}"
+    replacements["  longitude: 0.0"] = f"  longitude: {lon}"
+    replacements["  zoom: 11"] = f"  zoom: {zoom}"
 
     file_paths = ["pyproject.toml", "config/country_config.yaml", "docs/GCP_SETUP.md"]
 
@@ -680,6 +732,7 @@ def setup_github(
         gh_owner,
         gh_repo_name,
         gcp_project_id,
+        country_name,
         step=step_offset + 4,
         total=total,
         ecosystem_gee_asset_id=ecosystem_gee_asset_id,

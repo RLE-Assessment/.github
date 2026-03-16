@@ -103,7 +103,7 @@ uv run https://raw.githubusercontent.com/RLE-Assessment/.github/main/scripts/ini
 
 | Option | Description |
 |---|---|
-| `--country-name` | Name of the country for the assessment |
+| `--country-name` | Name of the country for the assessment. Also used to auto-estimate the initial map view coordinates (latitude, longitude, zoom) via geocoding. |
 | `--gcp-project-id` | A globally unique GCP project identifier (lowercase letters, digits, and hyphens) |
 | `--gcp-project-name` | *(Optional)* Display name for the GCP project (only needed when creating a new project; prompted if omitted) |
 | `--gh-repo-name` | Name for the new GitHub repository |
