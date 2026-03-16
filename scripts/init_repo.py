@@ -1156,8 +1156,26 @@ def _setup_gcp_own(
         retries=3,
     )
 
+    run_command(
+        [
+            "gcloud",
+            "iam",
+            "service-accounts",
+            "add-iam-policy-binding",
+            sa_email,
+            f"--project={gcp_project_id}",
+            "--role=roles/iam.serviceAccountTokenCreator",
+            f"--member={member}",
+        ],
+        step=step_offset + 9,
+        total=total,
+        title="Grant Token Creator Role",
+        description="grants the Service Account Token Creator role so that the GitHub Actions workflow can generate access tokens when impersonating the service account.",
+        retries=3,
+    )
+
     # Earth Engine registration
-    _step_header(step_offset + 9, total, "Register Project with Earth Engine")
+    _step_header(step_offset + 10, total, "Register Project with Earth Engine")
 
     # Check if already registered
     token_result = subprocess.run(
@@ -1503,7 +1521,7 @@ def main(
     if gh_owner is None:
         gh_owner = _get_gh_username()
     github_steps = 5
-    gcp_steps = 9
+    gcp_steps = 10
     secret_steps = 3
     local_steps = 2
     total = github_steps + gcp_steps + secret_steps + local_steps
