@@ -465,7 +465,7 @@ def customize_pyproject(
     replacements["  latitude: 0.0"] = f"  latitude: {lat}"
     replacements["  longitude: 0.0"] = f"  longitude: {lon}"
     replacements["  zoom: 11"] = f"  zoom: {zoom}"
-    replacements["goog-rle-assessments"] = gcp_project_id
+    replacements['GOOGLE_CLOUD_PROJECT = "goog-rle-assessments"'] = f'GOOGLE_CLOUD_PROJECT = "{gcp_project_id}"'
 
     file_paths = ["pyproject.toml", "config/country_config.yaml", "docs/GCP_SETUP.md"]
 
