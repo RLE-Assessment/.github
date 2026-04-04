@@ -711,6 +711,7 @@ def setup_github(
                 }
             }
         ),
+        retries=3,
     )
 
     run_command(
