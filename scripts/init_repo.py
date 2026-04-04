@@ -140,7 +140,7 @@ def _is_project_id_in_use_error(stderr: str) -> bool:
 
 def _is_retryable_error(stderr: str) -> bool:
     """Check if a gcloud error is likely caused by propagation delay."""
-    return "PERMISSION_DENIED" in stderr or "does not exist" in stderr
+    return "PERMISSION_DENIED" in stderr or "does not exist" in stderr or "Not Found" in stderr
 
 
 def run_command(
