@@ -1594,6 +1594,11 @@ def main(
             f"--repo={gh_owner}/{gh_repo_name}[/dim]"
         )
 
+    # Allow time for IAM permissions to propagate before triggering the
+    # deploy workflow.
+    console.print("\n  [dim]Waiting 60 seconds for IAM permissions to propagate...[/dim]")
+    time.sleep(60)
+
     # Re-trigger the deploy workflow now that the environment, secrets,
     # and gate variable are fully configured.
     console.print(Rule("[bold blue]Trigger Deploy Workflow"))
