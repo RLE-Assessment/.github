@@ -125,6 +125,36 @@ The script runs four phases:
 
 The script is idempotent -- it skips resources that already exist, so it is safe to re-run if a step fails partway through.
 
+The following diagram illustrate the system components and the steps taken to configure and connect them.
+```mermaid
+flowchart LR
+    subgraph GitHub
+        subgraph Assessment Template
+            T(["`**Assessment Template**<br/>***TEMPLATE-rle-assessment***`"])
+        end
+        subgraph Assessment Repo
+            R(["`**Assessment Repo**<br/>***--gh-repo-name***<br/>***Step 2*** Create GitHub Pages Environment<br/>***Step 3*** Add 'main' as Deployment Branch<br/>***Step 4*** Customize project config<br/>***Step 5** Customize _quarto.yml`"])
+        end
+    end
+    subgraph GCP["**GCP Project**"]
+        P["`**Project Config**<br/>***Step 6*** Create/Use project --gcp-project-id<br/>***Step 7***Ensure Owner permissions<br/>***Step 8*** Enable APIs<br/>***Step 11*** Create service account*`"]
+        WIP[["Workload Identity Pool<br/>*github-pool*<br/>***Step 9*** Create WIP"]]
+        Bucket["Storage buckets"]
+    end
+    GEE(["Google Earth Engine"])
+    T -- ***Step 1*** Create GitHub Repository --> R
+    WIP -- ***Step 10*** Create OIDC Provider --> R
+    GCP <-- ***Step 12*** Grant IAM Roles --> GEE
+    P <-- ***Step 13*** Bind Repository to Service Account--> R
+    P <-- ***Step 14*** Grant Token Creator Role --> R
+    GCP <-- ***Step 15*** Register Project with Earth Engine --> GEE
+
+    subgraph Dev Environment
+        RClone(["`Assessment Repo (clone)<br/>***--gh-repo-name***<br/>*Step 20 Install Packages*`"])
+    end
+    R -- Step 19 Clone Repository --> RClone
+```
+
 ## Edit the assessment report
 
 If you just ran the initialization script above, skip to step 4.
