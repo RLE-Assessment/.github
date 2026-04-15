@@ -668,6 +668,8 @@ def setup_github(
         console.print(
             f"\n  [yellow]Repository {repo_full} already exists — skipping creation.[/yellow]"
         )
+        if not typer.confirm(f"\n  Use existing repository {repo_full}?", default=True):
+            raise typer.Abort()
     else:
         run_command(
             [
